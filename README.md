@@ -144,14 +144,4 @@ The engagement does not include:
 - Portfolio-scale infrastructure
 - Ongoing advisory or maintenance services
 
-## 9. Information Removed from This Version
-
-The following categories were removed or generalized to make this version safer to share:
-
-- Client and contractor identities
-- Fees, taxes, expenses, and payment milestones
-- Exact dates and detailed project schedule
-- Intellectual-property and copyright provisions
-- Named internal or project-specific references
-- Detailed contractual review limits
 - Other commercially identifying details
