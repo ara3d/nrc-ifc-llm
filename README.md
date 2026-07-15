@@ -1,7 +1,7 @@
 # LLM-Assisted Analytics Metadata on IFC Models
 
 _A Studio 2.5 collaboration with the Canadian National Research Council_
-
+  
 ## 1. Background
 
 The client produces analytics on building models, including operational carbon, embodied carbon, energy, and other performance indicators, through workflows external to IFC. The client wishes to explore how these analytics can be:
