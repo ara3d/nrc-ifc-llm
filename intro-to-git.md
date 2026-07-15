@@ -1,4 +1,4 @@
-## Welcome to Git
+# Welcome to Git
 
 This is a Git repository hosted on Github. 
 Git is a distributed document version management system. 
