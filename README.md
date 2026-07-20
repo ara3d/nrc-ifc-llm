@@ -9,6 +9,7 @@ The work will produce a technical paper and a minimal proof of concept.
 ## Documents
 
 - [Statement of Work](statement-of-work.md) — background, objectives, scope, deliverables, and acceptance criteria for the engagement.
+- [Storing Analytics in IFC](storing-analytics-in-ifc.md) — a brainstorm of options for storing analytics data inside IFC, with pros and cons of each.
 - [IDS Overview](ids.md) — an introduction to the Information Delivery Specification (IDS), the buildingSMART standard for machine-readable information requirements.
 - [IFC Viewers](ifc-viewers.md) — an inventory of open-source IFC viewers.
 - [Intro to Git](intro-to-git.md) — a brief introduction to Git and this repository for new contributors.
