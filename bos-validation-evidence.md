@@ -293,20 +293,22 @@ validation language requires ("documented in repository commits and logs").
 
 ---
 
-## 9. What does not exist yet (for completeness)
+## 9. Remaining gaps
 
-The inventory above covers model processing, toolchain integration, determinism, identifier
-binding, rule primitives, and the dated commit record. The following validation items have **no
-existing evidence** and require a demonstration harness to be built:
+**Update 2026-08-04:** the door-clearance demonstration ([door-clearance-demo.md](door-clearance-demo.md),
+commits [`e5dbb6e`](https://github.com/ara3d/ara3d-sdk/commit/e5dbb6e943212e0f62b6d94571a3d0b16a53402a)
+and [`3a3e844`](https://github.com/ara3d/nrc-ifc-llm/commit/3a3e844e7ec7b4b4852857e166aa5fc241092886))
+closed the original gaps 1, 2, 3, and 5 of this section: a rule engine now produces all four
+verdict categories from a machine-readable JSON provision file, a human override has been
+recorded and byte-reversibly verified, and run logs with SHA-256 output hashes are produced and
+independently reproduced. Gap 4 (geometric measurement against known values) is partially closed
+— name-encoded door dimensions serve as independent known values matched to the millimetre — with
+the following still open:
 
-1. **A rule engine producing the four verdict categories** (pass / fail / not applicable /
-   inconclusive) — the primitives exist (§5), the engine does not.
-2. **An executable machine-readable provision format** — IDS is documented but not implemented;
-   SQL-over-BOS is the nearest existing encoding.
-3. **A recorded human confirmation and override** — the recording mechanism exists and is proven
-   reversible (§4), but no confirmation/override workflow has been run.
-4. **Geometric measurements compared against independently known values** — current geometry
-   assertions are non-degeneracy checks; declared-quantity-versus-measured-geometry cross-checks
-   (via `ifc_quantities`) and KIT's published FZK-Haus dimensions are the available ground truths.
-5. **Persisted run logs with output hashes** — tests verify byte identity in-process; no run-log
-   artifact with recorded hashes is retained yet.
+1. **Mesh-accurate geometric measurement** — the clearance-zone clash uses exact placement
+   transforms but obstacle placement origins, not meshed geometry; the mesh path (`ifc_volume`,
+   `ifc_bounds`) exists but was not wired into the checker.
+2. **IDS as the provision format** — the demo uses a purpose-built JSON rule schema; mapping it
+   to buildingSMART IDS remains future work.
+3. **True clear width** — the width rule tests the door leaf (`OverallWidth`), not code-defined
+   clear width; the `Pset_DoorCommon.ClearWidth` rule returns inconclusive until models author it.
