@@ -67,7 +67,13 @@ returned value, the number of tool calls, and whether the transcript showed the 
 
 **Executed 2026-08-04.** This study shows a building-code provision expressed as a
 machine-readable rule, executed by a checker against the model, with verdicts stored per element
-and a human override written back into the IFC.
+and a human override written back into the IFC. Figure 1 shows the three stages and the
+plan-view geometry of the zone rule.
+
+![Figure 1. Code to rule to checker: the door-clearance pipeline over duplex.ifc](figures/figure-1-door-clearance-pipeline.svg)
+
+_Figure 1. The three stages of case study B: a code provision, its JSON rule, and the checker's
+verdict records, with the plan-view zone test of rule DC-Z1 and the verdict totals._
 
 **Rules.** Four provisions modelled on NBC 2020 accessible-door requirements. The citations are
 labelled illustrative in the rule file; they are not legal text.
