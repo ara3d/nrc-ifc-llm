@@ -6,6 +6,10 @@ This project explores how building analytics (embodied carbon, operational carbo
 
 The work will produce a technical paper and a minimal proof of concept.
 
+## Technical paper
+
+- [paper/](paper/README.md) — the technical paper (deliverable D3), one Markdown file per section, with a status table showing which results are executed and which are planned.
+
 ## Documents
 
 - [Statement of Work](statement-of-work.md) — background, objectives, scope, deliverables, and acceptance criteria for the engagement.
