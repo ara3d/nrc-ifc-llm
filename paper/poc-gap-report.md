@@ -20,7 +20,7 @@ surface (Section 5).
 | Aggregated views (chart, table per storey) | Figures 2 and 3, from a two-node graph over the storey CSV | Done |
 | Values shown as a table | Figure 4, the written property values | Done |
 | Colour coding on 3D geometry from a value table | Figures 5 to 8, captured 2026-09-18 after the converter and loader fixes (see 2.2) | Done |
-| Property panel on a selected element | The toolkit's 3D pane shows the picked element's property sets (toolkit, 2026-09-18); screenshot pending | In progress |
+| Property panel on a selected element | Figure 13: the toolkit's 3D pane lists the picked element's property sets, fetched from the host (toolkit commits f9900c9, e8b3230, 54dfb8a) | Done |
 | Viewer comparison from the test kit | One row, the toolkit viewer, from the walkthrough; other viewers not run | Partly done |
 | Autonomous LLM agent answering unattended | `gpt-5` through `bimopenmcp-ifc-ask`, 2026-09-18: four of eight match, transcript in `poc/results/transcript-unattended.md` | Done, with three misses explained in Section 6.2 |
 

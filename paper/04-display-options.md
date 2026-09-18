@@ -129,6 +129,17 @@ through the rule to the colouring._
 _Figure 9. The `check.rule` output: one row per door with `GlobalId`, the width read in
 metres and millimetres, the verdict, and the citation._
 
+Text annotation is the property panel. Figure 13 is a wall picked in the 3D pane: the pane
+asks the host for that entity's property sets and lists them, the enrichment's
+`Pset_NRCEmbodiedCarbon` and `Pset_NRCEnergyPerformance` among the authoring tool's own, with
+the run identifier and scenario name the provenance convention requires.
+
+![Figure 13. A picked wall's property sets](figures/figure-13-picked-element-properties.png)
+
+_Figure 13. The picked element's property sets under the 3D view: name, class, `GlobalId`,
+then one section per set. The analytics sets sit beside the Revit-exported ones because they
+are ordinary property sets in the file._
+
 Aggregates that depend on the spatial structure come from the `StoreyOfEntity` view added to
 the toolkit's text views for this work; Figure 10 shows the elements per storey it produces,
 including the 103 on Level 1 that the hand-driven session in Section 6.2 undercounted.
@@ -175,7 +186,7 @@ has been run.
 | FreeCAD NativeIFC | LGPL | Desktop | Partial | Via Python | Yes | Via Python | Python | to test |
 | BIMvision | Freeware | Windows | Yes | Plug-in | Yes | Limited | Plug-in API | to test |
 | FZKViewer | Freeware | Desktop | Yes | No | Yes, strong | No | No | to test |
-| BimOpenFlow viewer (toolkit) | MIT | Web | Yes (Figures 5 to 8) | Yes, native (Figures 5 to 8) | Yes, on pick | Yes, native (Figures 2, 3, 10) | Graph and MCP | tested 2026-09-18: steps 1 to 5 of the kit pass; step 6 with the Snowdon model, 456,598 instances (Figure 11); step 7: IFC is converted to BOS once by the host and cached |
+| BimOpenFlow viewer (toolkit) | MIT | Web | Yes (Figures 5 to 8) | Yes, native (Figures 5 to 8) | Yes, on pick (Figure 13) | Yes, native (Figures 2, 3, 10) | Graph and MCP | tested 2026-09-18: steps 1 to 5 of the kit pass; step 6 with the Snowdon model, 456,598 instances (Figure 11); step 7: IFC is converted to BOS once by the host and cached |
 
 Speckle, listed in the statement of work, is a platform rather than a viewer; its web viewer
 supports colouring by property and its connectors support custom data, and it should be
