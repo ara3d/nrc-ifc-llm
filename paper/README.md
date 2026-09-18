@@ -26,6 +26,7 @@ drafted, reviewed, and revised independently. Read the sections in the order bel
 | C | [Appendix C: MCP tool surface](appendix-c-tool-surface.md) | Draft |
 | R | [References](references.md) | Draft |
 | G | [Proof-of-concept gap report](poc-gap-report.md) | What the executed run did not cover |
+| H | [Handoff: what the paper still needs](handoff-needs.md) | Minimal and ideal remaining work, for the next agent |
 
 ## Status of the evidence
 
