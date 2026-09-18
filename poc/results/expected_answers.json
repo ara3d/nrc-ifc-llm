@@ -1,0 +1,96 @@
+{
+  "Q1": {
+    "question": "What is the total operational carbon for the building?",
+    "answer": 37196.2,
+    "unit": "kgCO2e/yr"
+  },
+  "Q2": {
+    "question": "Which storey has the higher mean energy intensity, Level 1 or Level 2?",
+    "answer": {
+      "Level 1": 40.5,
+      "T/FDN": 61.76,
+      "Level 2": 40.56,
+      "Roof": 62.04
+    },
+    "unit": "kWh/m2/yr (mean per storey)"
+  },
+  "Q3": {
+    "question": "Which five elements have the highest operational carbon?",
+    "answer": [
+      {
+        "GlobalId": "0iEHWY1$XA8eQeeULq4jpl",
+        "Name": "Basic Wall:Interior - Partition (92mm Stud):190140",
+        "value": 412.0
+      },
+      {
+        "GlobalId": "0jf0rYHfX3RAB3bSIRjmr1",
+        "Name": "Basic Wall:Exterior - Brick on Block:185101",
+        "value": 410.8
+      },
+      {
+        "GlobalId": "0iEHWY1$XA8eQeeULq4ien",
+        "Name": "M_Upper Cabinet-Double Door-Wall:1000mm:1000mm:192610",
+        "value": 402.0
+      },
+      {
+        "GlobalId": "3Y4YRln2r91vflHcHE5IVT",
+        "Name": "Basic Wall:Interior - Furring (38 mm Stud):217415",
+        "value": 399.7
+      },
+      {
+        "GlobalId": "3Y4YRln2r91vflHcHE5IVS",
+        "Name": "Basic Wall:Interior - Furring (38 mm Stud):217414",
+        "value": 398.6
+      }
+    ],
+    "unit": "kgCO2e/yr"
+  },
+  "Q4": {
+    "question": "What is the operational carbon of the door named M_Single-Flush:0762 x 2032mm?",
+    "note": "Several doors share this family name; the first by STEP id is used.",
+    "answer": {
+      "GlobalId": "1hOSvn6df7F8_7GcBWlS8Z",
+      "Name": "M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173",
+      "value": 54.0
+    },
+    "unit": "kgCO2e/yr"
+  },
+  "Q5": {
+    "question": "How much operational carbon is in each category?",
+    "answer": {
+      "Wall": 22854.1,
+      "Floor": 5593.5,
+      "Other": 4313.1,
+      "Stair": 1144.2,
+      "Finish": 985.7,
+      "Window": 978.9,
+      "Door": 687.2,
+      "Roof": 474.7,
+      "Railing": 164.8
+    },
+    "unit": "kgCO2e/yr"
+  },
+  "Q6": {
+    "question": "Which analysis run produced these values, and when?",
+    "answer": {
+      "AnalysisRunId": "run-2026-09-17-01",
+      "ComputedAt": "2026-09-17T00:00:00Z",
+      "SourceTool": "nrc-ifc-llm/poc/generate_synthetic_analytics.py"
+    }
+  },
+  "Q7": {
+    "question": "What is the embodied carbon of the roof?",
+    "answer": null,
+    "note": "No Pset_NRCEmbodiedCarbon was written for the roof (0jf0rYHfX3RAB3bSIRjmxl); the correct answer is that the value is not available."
+  },
+  "Q8": {
+    "question": "What is the total embodied carbon (A1-A3) per storey?",
+    "answer": {
+      "Level 1": 49451.2,
+      "T/FDN": 11761.3,
+      "Level 2": 48696.8,
+      "Roof": 5821.0
+    },
+    "unit": "kgCO2e"
+  }
+}

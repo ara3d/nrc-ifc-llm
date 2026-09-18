@@ -1,0 +1,41 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "psets": {
+      "x": 40,
+      "y": 40
+    },
+    "view": {
+      "x": 420,
+      "y": 40
+    }
+  },
+  "structure": {
+    "edges": [
+      {
+        "from": "psets.table",
+        "to": "view.table"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "psets",
+        "kind": "csv.read",
+        "version": 1
+      },
+      {
+        "id": "view",
+        "kind": "view.table",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "psets": {
+      "path": "C:/Users/cdigg/git/nrc-ifc-llm/poc/data/psets_to_write.csv"
+    },
+    "view": {
+      "title": "NRC property values written into duplex-enriched.ifc"
+    }
+  }
+}

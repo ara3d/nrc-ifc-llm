@@ -1,0 +1,17 @@
+{
+  "source": "C:\\Users\\cdigg\\git\\nrc-ifc-llm\\IFC-Test-Kit\\duplex.ifc",
+  "target": "C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc",
+  "sourceEntities": 38898,
+  "sourceSha256": "b347a2c8aa8fff6db896a4417a9c50c22ac0ccd7c5cfc22b99b8d29336c606ed",
+  "targetEntities": 42664,
+  "targetSha256": "c72447cbd5329e224e851e0550d89cbefc20a69e22d18b621e1be80dadac22c8",
+  "propertySetsWritten": 664,
+  "propertyValuesWritten": 2438,
+  "elementsTouched": 224,
+  "entitiesAdded": 3766,
+  "firstNewId": 39115,
+  "lastNewId": 42880,
+  "diffListsExactlyTheAdditions": true,
+  "removalRestoresSourceByteForByte": true,
+  "secondRunIsByteIdentical": true
+}

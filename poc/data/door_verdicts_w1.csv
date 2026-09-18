@@ -1,0 +1,15 @@
+globalId,ruleId,verdict,evidence
+1aj$VJZFn2TxepZUBcKp$i,DC-W1,fail,IFCDOOR.OverallWidth attribute = 762mm; required >= 850mm
+1aj$VJZFn2TxepZUBcKpac,DC-W1,fail,IFCDOOR.OverallWidth attribute = 762mm; required >= 850mm
+1hOSvn6df7F8_7GcBWlRGQ,DC-W1,pass,IFCDOOR.OverallWidth attribute = 1250mm; required >= 850mm
+1hOSvn6df7F8_7GcBWlRH8,DC-W1,pass,IFCDOOR.OverallWidth attribute = 1250mm; required >= 850mm
+1hOSvn6df7F8_7GcBWlS8Z,DC-W1,fail,IFCDOOR.OverallWidth attribute = 762mm; required >= 850mm
+1hOSvn6df7F8_7GcBWlS9F,DC-W1,fail,IFCDOOR.OverallWidth attribute = 762mm; required >= 850mm
+1hOSvn6df7F8_7GcBWlSDm,DC-W1,pass,IFCDOOR.OverallWidth attribute = 864mm; required >= 850mm
+1hOSvn6df7F8_7GcBWlSFK,DC-W1,pass,IFCDOOR.OverallWidth attribute = 864mm; required >= 850mm
+1s1jVhK8z0pgKYcr9jt781,DC-W1,fail,IFCDOOR.OverallWidth attribute = 813mm; required >= 850mm
+1s1jVhK8z0pgKYcr9jt7AB,DC-W1,fail,IFCDOOR.OverallWidth attribute = 813mm; required >= 850mm
+2OBrcmyk58NupXoVOHUuXp,DC-W1,pass,IFCDOOR.OverallWidth attribute = 864mm; required >= 850mm
+2OBrcmyk58NupXoVOHUvPL,DC-W1,pass,IFCDOOR.OverallWidth attribute = 864mm; required >= 850mm
+2OBrcmyk58NupXoVOHUvR4,DC-W1,pass,IFCDOOR.OverallWidth attribute = 864mm; required >= 850mm
+2OBrcmyk58NupXoVOHUvVV,DC-W1,pass,IFCDOOR.OverallWidth attribute = 864mm; required >= 850mm

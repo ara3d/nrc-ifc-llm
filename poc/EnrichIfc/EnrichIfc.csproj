@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Writes the synthetic NRC analytics property sets into duplex.ifc byte-exactly, using the
+       BIM Open Toolkit editing library from a sibling clone (../../../bim-open-toolkit). -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>Nrc.Poc.EnrichIfc</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\bim-open-toolkit\src\data\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
+  </ItemGroup>
+
+</Project>

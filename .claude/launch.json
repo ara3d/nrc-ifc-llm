@@ -1,0 +1,38 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bof-host",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "C:/Users/cdigg/git/bim-open-toolkit/src/flow/BimOpenFlow.Host",
+        "--no-build",
+        "--",
+        "--port",
+        "5214",
+        "--profile",
+        "bim",
+        "--models",
+        "C:/Users/cdigg/git/nrc-ifc-llm/poc/data",
+        "--store",
+        "C:/Users/cdigg/git/nrc-ifc-llm/poc/store",
+        "--cache",
+        "C:/Users/cdigg/AppData/Local/Temp/claude/bof-nrc/cache"
+      ],
+      "port": 5214
+    },
+    {
+      "name": "bof-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/cdigg/git/bim-open-toolkit/bimopenflow/web",
+        "run",
+        "web"
+      ],
+      "port": 5300
+    }
+  ]
+}

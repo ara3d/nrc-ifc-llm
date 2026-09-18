@@ -1,0 +1,59 @@
+{
+  "formatVersion": "0.1.0",
+  "layout": {
+    "inst": {
+      "x": 40,
+      "y": 40
+    },
+    "values": {
+      "x": 40,
+      "y": 260
+    },
+    "colored": {
+      "x": 420,
+      "y": 140
+    }
+  },
+  "structure": {
+    "edges": [
+      {
+        "from": "inst.instances",
+        "to": "colored.instances"
+      },
+      {
+        "from": "values.table",
+        "to": "colored.values"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "inst",
+        "kind": "view3d.instances",
+        "version": 1
+      },
+      {
+        "id": "values",
+        "kind": "csv.read",
+        "version": 1
+      },
+      {
+        "id": "colored",
+        "kind": "view3d.color",
+        "version": 1
+      }
+    ]
+  },
+  "values": {
+    "inst": {
+      "path": "C:/Users/cdigg/git/nrc-ifc-llm/poc/data/duplex-enriched.ifc"
+    },
+    "values": {
+      "path": "C:/Users/cdigg/git/nrc-ifc-llm/poc/data/view_values.csv"
+    },
+    "colored": {
+      "joinColumn": "globalId",
+      "valueColumn": "category",
+      "colorMap": "category10"
+    }
+  }
+}

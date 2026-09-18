@@ -1,0 +1,5 @@
+
+# Proof-of-concept build output and host store
+poc/EnrichIfc/bin/
+poc/EnrichIfc/obj/
+poc/store/
