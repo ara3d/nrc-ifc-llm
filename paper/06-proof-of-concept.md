@@ -8,8 +8,10 @@ buildingSMART Duplex Apartment model, `duplex.ifc`, 38,898 STEP entities.
 
 > **Status.** Case study B (6.3) was executed on 2026-08-04 and independently re-run on
 > 2026-08-05. Every claim in it is backed by a test or a commit pinned in
-> [door-clearance-demo.md](../door-clearance-demo.md). Case study A (6.2) is specified but not
-> yet executed. Its result tables are empty on purpose.
+> [door-clearance-demo.md](../door-clearance-demo.md). Case study A (6.2) was executed on
+> 2026-09-17 with synthetic analytics; its scripts, data, and transcript are in
+> [poc/](../poc/README.md), and what it did not cover is listed in the
+> [gap report](poc-gap-report.md).
 
 ## 6.1 Model, data, and toolchain
 
@@ -31,37 +33,69 @@ tests and commits.
 
 ## 6.2 Case study A: natural-language questions over an enriched model
 
-**Planned procedure.**
+**Executed 2026-09-17.** The analytics are synthetic (Section 7.1): each physical element
+received a type-based embodied carbon value with a deterministic jitter, and the test kit's
+operational carbon and energy intensity columns were reused. The roof deliberately received no
+embodied-carbon set.
 
-1. Write the 268 analytics rows into the model as `Pset_NRCOperationalCarbon` and
-   `Pset_NRCEnergyPerformance` property sets using the byte-exact writer (Section 3.5), with a
-   run id and scenario name. Verify with an entity diff that only the expected entities were
-   added.
-2. Write storey-level and building-level aggregates as property sets on the two
-   `IFCBUILDINGSTOREY` entities and the `IFCBUILDING` entity.
-3. Attach an `IfcDocumentReference` to the project naming the CSV, its checksum, and the join key.
-4. Open the enriched model through the IFC MCP server from a chat client and ask a fixed list of
-   questions at component and building level. Record the transcript, the tool calls, and the
-   answer.
-5. Compute the expected answer for each question independently with a DuckDB query over the CSV,
-   and compare.
+**Procedure as run.**
 
-**Question list.**
+1. A generator script produced Layer 1 values for the 218 physical elements (openings excluded),
+   storey and building aggregates, a Layer 2 long-format table, and a provenance set for the
+   project, following Appendix A.
+2. A small .NET program wrote the values into a copy of the model with the byte-exact writer:
+   664 property sets, 2,438 typed property values (`IFCREAL`, `IFCLABEL`, `IFCIDENTIFIER`,
+   `IFCTEXT`), on 218 elements, 4 storeys, the building, and the project. The entity diff
+   listed exactly the 3,766 added entities, removing them restored the source byte for byte,
+   and a second run produced identical bytes.
+3. The expected answer to each question was computed from the CSV alone, without the IFC file
+   or the server.
+4. The enriched model was opened through the IFC MCP server over HTTP. The author, acting as
+   the agent, asked each question by choosing tool calls, and a helper script recorded every
+   call, its arguments, and its result verbatim before the answer was written.
 
-| # | Level | Question | Expected source |
-|---|---|---|---|
-| Q1 | Building | What is the total operational carbon for the building? | Sum of column |
-| Q2 | Storey | Which storey has the higher energy intensity on average? | Group by `Level` |
-| Q3 | Component | Which five elements have the highest operational carbon? | Top 5 |
-| Q4 | Component | What is the operational carbon of the door named `M_Single-Flush:0762 x 2032mm`? | Lookup |
-| Q5 | Category | How much carbon is in structural elements versus other elements? | Group by `category` |
-| Q6 | Provenance | Which analysis run produced these values, and when? | Provenance pset |
-| Q7 | Absence | What is the embodied carbon of the roof? | No value written; expect "not available" |
+| Item | Value |
+|---|---|
+| Source entities | 38,898 |
+| Enriched entities | 42,664 |
+| Property sets written | 664 |
+| Property values written | 2,438 |
+| Entities added | 3,766 |
+| Diff exact, reversible, deterministic | yes, yes, yes |
 
-Q7 is included to confirm that the agent reports absence rather than inventing a number.
+**Results.** All eight questions were answered from the file through the read-only SQL tool
+over the BOS text views. Seven returned values matched the expectation exactly; Q2 did not,
+for a reason the transcript makes visible.
 
-**Results.** To be recorded. The table will hold, per question, the expected value, the
-returned value, the number of tool calls, and whether the transcript showed the derivation.
+| # | Level | Question | Expected | Returned | Calls |
+|---|---|---|---|---|---|
+| Q1 | Building | Total operational carbon | 37,196.2 kgCO2e/yr | 37,196.2, from both the building aggregate and the sum of 218 elements | 2 |
+| Q2 | Storey | Higher mean energy intensity, Level 1 or 2 | L2, marginally: L1 40.50, L2 40.56 over 103 and 93 elements | **L1**: 41.72 against 40.56, over 93 elements each; disagrees | 2 |
+| Q3 | Component | Five highest operational carbon | walls 412.0, 410.8; cabinet 402.0; walls 399.7, 398.6 | same five, same order | 1 |
+| Q4 | Component | Operational carbon of door `M_Single-Flush:0762 x 2032mm` | 54.0 (first of four) | all four doors listed, 54.0 for the first; ambiguity stated | 1 |
+| Q5 | Category | Operational carbon per class | walls 17,547.4; slabs 5,816.9; furnishing 5,766.3 | same, all 14 classes | 1 |
+| Q6 | Provenance | Which run, when | run-2026-09-17-01, 2026-09-17 | same, plus tool, method, dataset URI; 664 sets carry the run id | 2 |
+| Q7 | Absence | Embodied carbon of the roof | not available | not available, with the two sets the roof does carry | 1 |
+| Q8 | Storey | Embodied carbon per storey | L1 49,451.2; L2 48,696.8; T/FDN 11,761.3; Roof 5,821.0 | same | 1 |
+
+Two observations from the transcript matter more than the matches.
+
+- **Q2 needed a second query and still came out wrong.** The converted model's `ContainedIn`
+  relation points at the room (Kitchen, Bedroom 1) for elements inside a room and at the
+  storey for the rest. The first query grouped by the direct container and produced a list of
+  rooms. The agent said so in the transcript and wrote a second query that walks room to
+  storey. That query reaches 93 of the 103 Level 1 elements, because ten stair, railing, and
+  member parts are aggregated into assemblies rather than contained. The answer stated the
+  caveat, but the conclusion it drew (Level 1 higher) is the opposite of the expectation over
+  all elements (Level 2 higher by 0.06). The margin is tiny and the synthetic data makes the
+  question artificial, but the lesson is real: a per-storey mean derived by the agent from
+  relations is only as complete as the relation walk, and the storey aggregates written in
+  Layer 1 (Q8) exist precisely so that the answer does not depend on it.
+- **Q4 is ambiguous by name.** Four doors share the family name. The agent returned all four
+  with their STEP ids and `GlobalId`s rather than choosing one silently.
+
+The full transcript, including the wrong first attempt at Q2, is in
+[poc/results/transcript.md](../poc/results/transcript.md).
 
 ## 6.3 Case study B: door clearance, from code text to verdicts
 

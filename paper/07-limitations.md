@@ -10,13 +10,21 @@ more than they are.
 ground-truth step. NRC's own models will not necessarily encode dimensions in names, and the
 measured-versus-declared rule (DC-M1) will need a geometric measurement in its place.
 
-**Case study A is not yet run.** The acceptance criterion, natural-language questions over an
-enriched model, is specified in Section 6.2 but has no recorded results in this draft.
+**Case study A was run by the author acting as the agent.** The questions were answered by
+choosing MCP tool calls by hand and recording them, not by an autonomous agent loop in a chat
+client. This shows that the tool surface can answer the questions; it does not measure how
+often an unattended language model would choose the right calls.
 
-**Synthetic analytics.** The 268-row carbon and energy dataset was generated for viewer testing.
-It has the right shape and join key but the values are not from an analysis tool. Provenance
-fields in the property sets will be filled with real run identifiers only once NRC supplies a
-dataset.
+**Synthetic analytics.** The carbon and energy values were generated from per-type base values
+with a hash jitter, and the operational columns come from a dataset made for viewer testing.
+They have the right shape, units, and join key but are not from an analysis tool. Provenance
+fields will carry real run identifiers only once NRC supplies a dataset.
+
+**Storey resolution through relations is incomplete.** In the converted model, elements inside
+assemblies (stair flights, railings, members) are reached by `PartOf`, not `ContainedIn`, and
+the Q2 query missed ten of them, which flipped a marginal comparison. Storey-level answers
+should come from the written aggregates, or the query layer needs a storey-of-element view
+that walks both relations.
 
 **Leaf width, not clear width.** Rule DC-W1 tests `OverallWidth`, which is the door leaf. The
 code's clear width subtracts frame, stops, and hinge-side projection; under a strict reading

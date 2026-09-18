@@ -16,7 +16,7 @@ drafted, reviewed, and revised independently. Read the sections in the order bel
 | 3 | [Storage options and recommendation](03-storage-options.md) | Draft, derived from the options brief |
 | 4 | [Display options and recommendation](04-display-options.md) | Draft, needs viewer matrix and screenshots |
 | 5 | [The LLM and agent layer](05-llm-agent-layer.md) | Draft |
-| 6 | [Proof of concept and results](06-proof-of-concept.md) | Case study B executed; case study A planned |
+| 6 | [Proof of concept and results](06-proof-of-concept.md) | Both case studies executed; A with synthetic data |
 | 7 | [Limitations](07-limitations.md) | Draft |
 | 8 | [Future directions](08-future-directions.md) | Draft |
 | 9 | [Roadmap for an open bidirectional viewer](09-viewer-roadmap.md) | Draft |
@@ -25,14 +25,14 @@ drafted, reviewed, and revised independently. Read the sections in the order bel
 | B | [Appendix B: rule file schema](appendix-b-rule-schema.md) | Draft |
 | C | [Appendix C: MCP tool surface](appendix-c-tool-surface.md) | Draft |
 | R | [References](references.md) | Draft |
+| G | [Proof-of-concept gap report](poc-gap-report.md) | What the executed run did not cover |
 
 ## Status of the evidence
 
 Everything in section 6 marked **executed** is backed by tests and commits pinned in
 [bos-validation-evidence.md](../bos-validation-evidence.md) and
-[door-clearance-demo.md](../door-clearance-demo.md). Anything marked **planned** has not
-been run and must not be cited as a result until it has. The main open item is case study A,
-the enriched-model question-answering run, which is the statement of work's acceptance criterion.
+[door-clearance-demo.md](../door-clearance-demo.md). Case study A was executed on 2026-09-17 with synthetic data; its scripts and transcript are in
+[poc/](../poc/README.md) and its open items are in the [gap report](poc-gap-report.md).
 
 ## Building a single document
 
@@ -40,7 +40,7 @@ Concatenate the files in table order to produce one Markdown file for conversion
 Word:
 
 ```bash
-cat 00-abstract.md 01-introduction.md 02-background.md 03-storage-options.md 04-display-options.md 05-llm-agent-layer.md 06-proof-of-concept.md 07-limitations.md 08-future-directions.md 09-viewer-roadmap.md 10-conclusion.md appendix-a-property-sets.md appendix-b-rule-schema.md appendix-c-tool-surface.md references.md > paper.md
+cat 00-abstract.md 01-introduction.md 02-background.md 03-storage-options.md 04-display-options.md 05-llm-agent-layer.md 06-proof-of-concept.md 07-limitations.md 08-future-directions.md 09-viewer-roadmap.md 10-conclusion.md appendix-a-property-sets.md appendix-b-rule-schema.md appendix-c-tool-surface.md poc-gap-report.md references.md > paper.md
 ```
 
 ## Source material

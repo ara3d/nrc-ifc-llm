@@ -4,10 +4,12 @@ This section answers the second objective: how analytics should be shown on IFC 
 what freely available software supports it. The viewer inventory in
 [ifc-viewers.md](../ifc-viewers.md) lists the candidates; this section selects among them.
 
-> **Status.** The comparison matrix in 4.3 records the intended tests from the
-> [IFC viewer test kit](../IFC-Test-Kit/README.md). The cells marked "to test" have not been
-> filled in, and no screenshots have been captured yet. The section will be completed once the
-> test kit has been run through the shortlisted viewers.
+> **Status.** Aggregated views and value tables were captured from the toolkit's dataflow
+> graphs on 2026-09-17 (Figures 2 to 4). The 3D colour-coded view was built as a graph but
+> could not be rendered, because the viewer rejects the Duplex model's geometry; the
+> [gap report](poc-gap-report.md) gives the error. The comparison matrix in 4.3 records the
+> intended tests from the [IFC viewer test kit](../IFC-Test-Kit/README.md); the cells marked
+> "to test" have not been filled in.
 
 ## 4.1 Three ways to show a number on a building
 
@@ -70,7 +72,28 @@ touching the file.
 
 Aggregated views come from the same graph: a `table.aggregate` node grouped by `Level` feeds a
 `chart.bar` or a `view.table` node, and the same aggregate can feed a second `view3d.color`
-that colours storeys.
+that colours storeys. Figures 2 and 3 show the storey aggregates from the proof of concept as
+a bar chart and as a table, from a two-node graph; Figure 4 shows the property values that
+were written into the model, as a table.
+
+![Figure 2. Embodied and operational carbon per storey as a bar chart](figures/figure-2-storey-carbon-chart.png)
+
+_Figure 2. The storey aggregates of the synthetic dataset, drawn by a `chart.bar` node fed from
+the storey CSV. The graph on the left is the whole description; the chart is its live output._
+
+![Figure 3. The same aggregates as a table](figures/figure-3-storey-carbon-table.png)
+
+_Figure 3. The same node's output in the Table tab. Building, storey, and roof values are the
+ones written into the corresponding IFC entities._
+
+![Figure 4. Property values written into the model](figures/figure-4-property-values-table.png)
+
+_Figure 4. The rows given to the byte-exact writer: entity id, set name, property name, IFC
+value type, and value. Each row became one `IFCPROPERTYSINGLEVALUE`._
+
+The 3D colouring of the Duplex model by these values was built as a graph
+(`poc/graphs/nrc-color-operational-carbon.json`) and accepted by the host, but the viewer
+could not load the model's geometry; see the gap report.
 
 ## 4.3 Viewer comparison
 
