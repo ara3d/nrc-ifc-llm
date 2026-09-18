@@ -1,0 +1,402 @@
+[
+  {
+    "question": "What is the total operational carbon for the building?",
+    "answer": "37,196.2 kgCO2e per year. From ifc_sql, 1 row: Pset_NRCOperationalCarbon.OperationalCarbon_kgCO2e_per_year on the IFCBUILDING.",
+    "turns": 4,
+    "inputTokens": 18633,
+    "outputTokens": 1842,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_parameters",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "propertySet": "Pset_NRC",
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022parameterCount\u0022:342,\u0022elementsWithParameters\u0022:259,\u0022parameters\u0022:{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022items\u0022:[{\u0022propertySet\u0022:\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022name\u0022:\u0022An\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT e.StepId, e.GlobalId, e.Name, e.Category, CAST(p.Value AS DOUBLE) AS OperationalCarbon_kgCO2e_per_year\nFROM EntityText e\nJOIN ParameterText p ON e.EntityIndex = p.EntityIndex\nWHERE p.ParameterGroup = \u0027Pset_NRCOperationalCarbon\u0027\n  AND p.Name = \u0027OperationalCarbon_kgCO2e_per_year\u0027\n  AND e.Category = \u0027IFCBUILDING\u0027"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:1,\u0022skip\u0022:0,\u0022count\u0022:1,\u0022columns\u0022:[\u0022StepId\u0022,\u0022GlobalId\u0022,\u0022Name\u0022,\u0022Category\u0022,\u0022OperationalCarbon_kgCO2e_per_year\u0022],\u0022rows\u0022:[[36,\u00221xS3BCk291UvhgP2a6eflK\u0022,\u0022#36\u0022,\u0022\u2026"
+      }
+    ]
+  },
+  {
+    "question": "Which storey has the higher mean energy intensity, Level 1 or Level 2?",
+    "answer": "Level 2 has the higher mean energy intensity. From ifc_sql, 2 rows: for Pset_NRCEnergyPerformance.EnergyUseIntensity_kWh_per_m2_year, Level 1 averaged 40.499 kWh/m2/year and Level 2 averaged 40.557 kWh/m2/year.",
+    "turns": 5,
+    "inputTokens": 25609,
+    "outputTokens": 3029,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_parameters",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "propertySet": "Pset_NRC",
+          "take": 1000
+        },
+        "ok": true,
+        "summary": "{\u0022parameterCount\u0022:342,\u0022elementsWithParameters\u0022:259,\u0022parameters\u0022:{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022items\u0022:[{\u0022propertySet\u0022:\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022name\u0022:\u0022An\u2026"
+      },
+      {
+        "name": "ifc_spatial_tree",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022roots\u0022:[{\u0022id\u0022:34,\u0022type\u0022:\u0022IFCPROJECT\u0022,\u0022name\u0022:\u00220001\u0022,\u0022elementCount\u0022:0,\u0022child\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT s.StoreyName,\n       COUNT(*) AS n,\n       AVG(CAST(p.Value AS DOUBLE)) AS mean_eui\nFROM ParameterText p\nJOIN StoreyOfEntity s USING(EntityIndex)\nWHERE p.ParameterGroup = \u0027Pset_NRCEnergyPerformance\u0027\n  AND p.Name = \u0027EnergyUseIntensity_kWh_per_m2_year\u0027\n  AND p.ValueType = \u0027Number\u0027\n  AND s.StoreyName IN (\u0027Level 1\u0027,\u0027Level 2\u0027)\nGROUP BY s.StoreyName\nORDER BY s.StoreyName;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:2,\u0022skip\u0022:0,\u0022count\u0022:2,\u0022columns\u0022:[\u0022StoreyName\u0022,\u0022n\u0022,\u0022mean_eui\u0022],\u0022rows\u0022:[[\u0022Level 1\u0022,103,40.499029126213586],[\u0022Level 2\u0022,93,40.55698924731185]]}"
+      }
+    ]
+  },
+  {
+    "question": "Which five elements have the highest operational carbon?",
+    "answer": "Based on Pset_NRCOperationalCarbon.OperationalCarbon_kgCO2e_per_year, the top five are: \u201C#36\u201D (IFCBUILDING) at 37196.2 kgCO2e/year, \u201CLevel 1\u201D (IFCBUILDINGSTOREY) at 17457, \u201CLevel 2\u201D (IFCBUILDINGSTOREY) at 13970.2, \u201CT/FDN\u201D (IFCBUILDINGSTOREY) at 4001.7, and \u201CRoof\u201D (IFCBUILDINGSTOREY) at 1767.3. Source: ifc_sql, 5 rows, property set Pset_NRCOperationalCarbon, property OperationalCarbon_kgCO2e_per_year.",
+    "turns": 4,
+    "inputTokens": 18805,
+    "outputTokens": 2238,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_parameters",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "propertySet": "Pset_NRC",
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022parameterCount\u0022:342,\u0022elementsWithParameters\u0022:259,\u0022parameters\u0022:{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022items\u0022:[{\u0022propertySet\u0022:\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022name\u0022:\u0022An\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT e.StepId, e.GlobalId, e.Name, e.Category, e.Type,\n       CAST(p.Value AS DOUBLE) AS OperationalCarbon_kgCO2e_per_year\nFROM ParameterText p\nJOIN EntityText e ON e.EntityIndex = p.EntityIndex\nWHERE p.ParameterGroup = \u0027Pset_NRCOperationalCarbon\u0027\n  AND p.Name = \u0027OperationalCarbon_kgCO2e_per_year\u0027\n  AND TRY_CAST(p.Value AS DOUBLE) IS NOT NULL\nORDER BY OperationalCarbon_kgCO2e_per_year DESC, e.StepId ASC\nLIMIT 5;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:5,\u0022skip\u0022:0,\u0022count\u0022:5,\u0022columns\u0022:[\u0022StepId\u0022,\u0022GlobalId\u0022,\u0022Name\u0022,\u0022Category\u0022,\u0022Type\u0022,\u0022OperationalCarbon_kgCO2e_per_year\u0022],\u0022rows\u0022:[[36,\u00221xS3BCk291UvhgP2a6eflK\u0022,\u2026"
+      }
+    ]
+  },
+  {
+    "question": "What is the operational carbon of the door named M_Single-Flush:0762 x 2032mm?",
+    "answer": "There are four doors matching that name; from ifc_search, 4 rows. From ifc_parameter_table (property set Pset_NRCOperationalCarbon, property OperationalCarbon_kgCO2e_per_year), 4 rows: M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173 (#8066) = 54.0 kgCO2e/year; \u2026:150257 (#8169) = 146.1 kgCO2e/year; \u2026:203720 (#35318) = 117.3 kgCO2e/year; \u2026:204034 (#35413) = 61.8 kgCO2e/year. Which specific instance do you mean?",
+    "turns": 4,
+    "inputTokens": 20384,
+    "outputTokens": 2886,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_search",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "text": "M_Single-Flush:0762 x 2032mm",
+          "type": "IFCDOOR",
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:4,\u0022skip\u0022:0,\u0022count\u0022:4,\u0022items\u0022:[{\u0022id\u0022:8066,\u0022type\u0022:\u0022IFCDOOR\u0022,\u0022name\u0022:\u0022M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173\u0022,\u0022globalId\u0022:\u00221hOSvn6df7F8_7GcBWlS8Z\u2026"
+      },
+      {
+        "name": "ifc_parameters",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "propertySet": "Pset_NRC",
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022parameterCount\u0022:342,\u0022elementsWithParameters\u0022:259,\u0022parameters\u0022:{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022items\u0022:[{\u0022propertySet\u0022:\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022name\u0022:\u0022An\u2026"
+      },
+      {
+        "name": "ifc_parameter_table",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "names": "OperationalCarbon_kgCO2e_per_year",
+          "propertySet": "Pset_NRCOperationalCarbon",
+          "ids": "8066,8169,35318,35413",
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022columns\u0022:[\u0022OperationalCarbon_kgCO2e_per_year\u0022],\u0022rows\u0022:{\u0022total\u0022:4,\u0022skip\u0022:0,\u0022count\u0022:4,\u0022items\u0022:[{\u0022entity\u0022:{\u0022id\u0022:8066,\u0022type\u0022:\u0022IFCDOOR\u0022,\u0022name\u0022:\u0022M_Single-Flush:0762\u2026"
+      }
+    ]
+  },
+  {
+    "question": "How much operational carbon is in each category?",
+    "answer": "From ifc_sql, 16 rows: I summed Pset_NRCOperationalCarbon.OperationalCarbon_kgCO2e_per_year by EntityText.Category. \nTotals (kgCO2e/year) by category are: IFCBUILDINGSTOREY 37196.2; IFCBUILDING 37196.2; IFCWALLSTANDARDCASE 17547.4; IFCSLAB 5816.9; IFCFURNISHINGELEMENT 5766.3; IFCFOOTING 2086.9; IFCDOOR 1324.7; IFCCOVERING 985.7; IFCWINDOW 978.9; IFCBEAM 771.6; IFCMEMBER 560.0; IFCWALL 357.5; IFCSTAIRFLIGHT 311.5; IFCSTAIR 272.7; IFCROOF 251.3; IFCRAILING 164.8. \nNote that IFCBUILDING and IFCBUILDINGSTOREY are container categories that carry whole-building and per-storey totals, respectively.",
+    "turns": 4,
+    "inputTokens": 17250,
+    "outputTokens": 3757,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT ParameterGroup, Name, Units, ValueType, COUNT(*) AS n, COUNT(DISTINCT EntityIndex) AS entities\nFROM ParameterText\nWHERE ParameterGroup LIKE \u0027Pset_NRC%\u0027\nGROUP BY ALL\nORDER BY ParameterGroup, Name"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022columns\u0022:[\u0022ParameterGroup\u0022,\u0022Name\u0022,\u0022Units\u0022,\u0022ValueType\u0022,\u0022n\u0022,\u0022entities\u0022],\u0022rows\u0022:[[\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022AnalysisRunId\u0022,\u0022\u0022\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "WITH Op AS (\n  SELECT EntityIndex, CAST(Value AS DOUBLE) AS kg\n  FROM ParameterText\n  WHERE ParameterGroup = \u0027Pset_NRCOperationalCarbon\u0027\n    AND Name = \u0027OperationalCarbon_kgCO2e_per_year\u0027\n    AND ValueType = \u0027Number\u0027\n)\nSELECT e.Category, COUNT(*) AS elements, SUM(o.kg) AS total_kgCO2e_per_year\nFROM Op o\nJOIN EntityText e USING (EntityIndex)\nGROUP BY e.Category\nORDER BY total_kgCO2e_per_year DESC NULLS LAST, elements DESC"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:16,\u0022skip\u0022:0,\u0022count\u0022:16,\u0022columns\u0022:[\u0022Category\u0022,\u0022elements\u0022,\u0022total_kgCO2e_per_year\u0022],\u0022rows\u0022:[[\u0022IFCBUILDINGSTOREY\u0022,4,37196.2],[\u0022IFCBUILDING\u0022,1,37196.2],[\u0022IF\u2026"
+      }
+    ]
+  },
+  {
+    "question": "Which analysis run produced these values, and when?",
+    "answer": "The values came from analysis run run-2026-09-17-01, computed at 2026-09-17T00:00:00Z (UTC) as recorded in Pset_NRCAnalyticsProvenance.AnalysisRunId and .ComputedAt. From ifc_parameter_values, 1 row for AnalysisRunId and 1 row for ComputedAt, both in Pset_NRCAnalyticsProvenance.",
+    "turns": 4,
+    "inputTokens": 18775,
+    "outputTokens": 1644,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_parameters",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "propertySet": "Pset_NRC",
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022parameterCount\u0022:342,\u0022elementsWithParameters\u0022:259,\u0022parameters\u0022:{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022items\u0022:[{\u0022propertySet\u0022:\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022name\u0022:\u0022An\u2026"
+      },
+      {
+        "name": "ifc_parameter_values",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "name": "Pset_NRCAnalyticsProvenance.AnalysisRunId",
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022name\u0022:\u0022Pset_NRCAnalyticsProvenance.AnalysisRunId\u0022,\u0022propertySets\u0022:[\u0022Pset_NRCAnalyticsProvenance\u0022],\u0022values\u0022:{\u0022total\u0022:1,\u0022skip\u0022:0,\u0022count\u0022:1,\u0022items\u0022:[{\u0022value\u0022:\u0022run\u2026"
+      },
+      {
+        "name": "ifc_parameter_values",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "name": "Pset_NRCAnalyticsProvenance.ComputedAt",
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022name\u0022:\u0022Pset_NRCAnalyticsProvenance.ComputedAt\u0022,\u0022propertySets\u0022:[\u0022Pset_NRCAnalyticsProvenance\u0022],\u0022values\u0022:{\u0022total\u0022:1,\u0022skip\u0022:0,\u0022count\u0022:1,\u0022items\u0022:[{\u0022value\u0022:\u00222026-0\u2026"
+      }
+    ]
+  },
+  {
+    "question": "What is the embodied carbon of the roof?",
+    "answer": "The roof\u2019s embodied carbon is 1,838.5 kgCO2e (A1\u2013A3) and 2,059.1 kgCO2e (A1\u2013A5), taken from Pset_NRCEmbodiedCarbon (properties EmbodiedCarbon_A1A3_kgCO2e and EmbodiedCarbon_A1A5_kgCO2e) on its IFCSLAB member. From ifc_sql, 1 row (aggregation over the IFCROOF and its children); a breakdown shows the values are on the slab child while the IFCROOF itself holds none.",
+    "turns": 12,
+    "inputTokens": 85523,
+    "outputTokens": 11318,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_parameters",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "propertySet": "Pset_NRC",
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022parameterCount\u0022:342,\u0022elementsWithParameters\u0022:259,\u0022parameters\u0022:{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022items\u0022:[{\u0022propertySet\u0022:\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022name\u0022:\u0022An\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "WITH roofs AS (\n  SELECT e.EntityIndex\n  FROM EntityText e\n  WHERE e.Category = \u0027IFCROOF\u0027\n  UNION\n  SELECT p.EntityIndex\n  FROM ParameterText p\n  JOIN EntityText e2 ON e2.EntityIndex = p.EntityIndex\n  WHERE e2.Category = \u0027IFCSLAB\u0027 AND p.Name = \u0027PredefinedType\u0027 AND UPPER(p.Value) = \u0027ROOF\u0027\n)\nSELECT \n  COUNT(*) AS RoofElementCount,\n  SUM(CAST(pA1A3.Value AS DOUBLE)) AS Sum_A1A3_kgCO2e,\n  SUM(CAST(pA1A5.Value AS DOUBLE)) AS Sum_A1A5_kgCO2e,\n  COUNT(DISTINCT r.EntityIndex) AS ElementsWithEC\nFROM roofs r\nLEFT JOIN ParameterText pA1A3 ON pA1A3.EntityIndex = r.EntityIndex AND pA1A3.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pA1A3.Name = \u0027EmbodiedCarbon_A1A3_kgCO2e\u0027\nLEFT JOIN ParameterText pA1A5 ON pA1A5.EntityIndex = r.EntityIndex AND pA1A5.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pA1A5.Name = \u0027EmbodiedCarbon_A1A5_kgCO2e\u0027;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:1,\u0022skip\u0022:0,\u0022count\u0022:1,\u0022columns\u0022:[\u0022RoofElementCount\u0022,\u0022Sum_A1A3_kgCO2e\u0022,\u0022Sum_A1A5_kgCO2e\u0022,\u0022ElementsWithEC\u0022],\u0022rows\u0022:[[1,null,null,1]]}"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT e.StepId, e.Category, e.Type, e.Name, p.Value AS PredefinedType\nFROM ParameterText p\nJOIN EntityText e ON e.EntityIndex = p.EntityIndex\nWHERE p.Name = \u0027PredefinedType\u0027 AND (UPPER(p.Value) LIKE \u0027%ROOF%\u0027 OR UPPER(e.Type) LIKE \u0027%ROOF%\u0027)\nORDER BY e.Category, e.StepId;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:0,\u0022skip\u0022:0,\u0022count\u0022:0,\u0022columns\u0022:[\u0022StepId\u0022,\u0022Category\u0022,\u0022Type\u0022,\u0022Name\u0022,\u0022PredefinedType\u0022],\u0022rows\u0022:[]}"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT e.StepId, e.GlobalId, e.Name, e.Category, e.Type,\n       pa.Value AS A1A3_kgCO2e, pb.Value AS A1A5_kgCO2e\nFROM EntityText e\nLEFT JOIN ParameterText pa ON pa.EntityIndex = e.EntityIndex AND pa.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pa.Name = \u0027EmbodiedCarbon_A1A3_kgCO2e\u0027\nLEFT JOIN ParameterText pb ON pb.EntityIndex = e.EntityIndex AND pb.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pb.Name = \u0027EmbodiedCarbon_A1A5_kgCO2e\u0027\nWHERE e.Category = \u0027IFCROOF\u0027\nORDER BY e.StepId;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:1,\u0022skip\u0022:0,\u0022count\u0022:1,\u0022columns\u0022:[\u0022StepId\u0022,\u0022GlobalId\u0022,\u0022Name\u0022,\u0022Category\u0022,\u0022Type\u0022,\u0022A1A3_kgCO2e\u0022,\u0022A1A5_kgCO2e\u0022],\u0022rows\u0022:[[22475,\u00220jf0rYHfX3RAB3bSIRjmxl\u0022,\u0022Basi\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT EntityIndex, StepId, GlobalId, Name, Category, Type FROM EntityText WHERE Category = \u0027IFCROOF\u0027 ORDER BY StepId;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:1,\u0022skip\u0022:0,\u0022count\u0022:1,\u0022columns\u0022:[\u0022EntityIndex\u0022,\u0022StepId\u0022,\u0022GlobalId\u0022,\u0022Name\u0022,\u0022Category\u0022,\u0022Type\u0022],\u0022rows\u0022:[[3405,22475,\u00220jf0rYHfX3RAB3bSIRjmxl\u0022,\u0022Basic Roof:Li\u2026"
+      },
+      {
+        "name": "ifc_properties",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "id": 22475,
+          "skip": 0,
+          "take": 100
+        },
+        "ok": true,
+        "summary": "{\u0022entity\u0022:{\u0022id\u0022:22475,\u0022type\u0022:\u0022IFCROOF\u0022,\u0022name\u0022:\u0022Basic Roof:Live Roof over Wood Joist Flat Roof:184483\u0022,\u0022globalId\u0022:\u00220jf0rYHfX3RAB3bSIRjmxl\u0022},\u0022properties\u0022:{\u0022total\u0022\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT EntityIndexA, NameA, EntityIndexB, NameB, RelationType\nFROM RelationText\nWHERE EntityIndexA = 3405 OR EntityIndexB = 3405\nORDER BY RelationType, EntityIndexA, EntityIndexB;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:10,\u0022skip\u0022:0,\u0022count\u0022:10,\u0022columns\u0022:[\u0022EntityIndexA\u0022,\u0022NameA\u0022,\u0022EntityIndexB\u0022,\u0022NameB\u0022,\u0022RelationType\u0022],\u0022rows\u0022:[[3405,\u0022Basic Roof:Live Roof over Wood Joist Fla\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "WITH roof AS (\n  SELECT 3405 AS EntityIndex\n), children AS (\n  SELECT r.EntityIndex AS RoofIndex, rel.EntityIndexA AS ChildIndex, rel.RelationType\n  FROM RelationText rel\n  JOIN roof r ON rel.EntityIndexB = r.EntityIndex\n)\nSELECT \n  e.EntityIndex, e.StepId, e.Category, e.Type, e.Name,\n  c.RelationType,\n  pa.Value AS A1A3_kgCO2e,\n  pb.Value AS A1A5_kgCO2e\nFROM (\n  SELECT EntityIndex, NULL AS RelationType FROM roof\n  UNION ALL\n  SELECT ChildIndex AS EntityIndex, RelationType FROM children\n) x\nJOIN EntityText e ON e.EntityIndex = x.EntityIndex\nLEFT JOIN ParameterText pa ON pa.EntityIndex = e.EntityIndex AND pa.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pa.Name = \u0027EmbodiedCarbon_A1A3_kgCO2e\u0027\nLEFT JOIN ParameterText pb ON pb.EntityIndex = e.EntityIndex AND pb.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pb.Name = \u0027EmbodiedCarbon_A1A5_kgCO2e\u0027\nORDER BY x.RelationType NULLS FIRST, e.Category, e.StepId;"
+        },
+        "ok": false,
+        "summary": "Binder Error: Referenced table \u0022c\u0022 not found!\nCandidate tables: \u0022x\u0022\n\nLINE 10:   c.RelationType,\n           ^"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "WITH roof AS (\n  SELECT 3405 AS EntityIndex\n), children AS (\n  SELECT r.EntityIndex AS RoofIndex, rel.EntityIndexA AS ChildIndex, rel.RelationType\n  FROM RelationText rel\n  JOIN roof r ON rel.EntityIndexB = r.EntityIndex\n)\nSELECT \n  e.EntityIndex, e.StepId, e.Category, e.Type, e.Name,\n  x.RelationType,\n  pa.Value AS A1A3_kgCO2e,\n  pb.Value AS A1A5_kgCO2e\nFROM (\n  SELECT EntityIndex, NULL AS RelationType FROM roof\n  UNION ALL\n  SELECT ChildIndex AS EntityIndex, RelationType FROM children\n) x\nJOIN EntityText e ON e.EntityIndex = x.EntityIndex\nLEFT JOIN ParameterText pa ON pa.EntityIndex = e.EntityIndex AND pa.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pa.Name = \u0027EmbodiedCarbon_A1A3_kgCO2e\u0027\nLEFT JOIN ParameterText pb ON pb.EntityIndex = e.EntityIndex AND pb.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pb.Name = \u0027EmbodiedCarbon_A1A5_kgCO2e\u0027\nORDER BY x.RelationType NULLS FIRST, e.Category, e.StepId;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:4,\u0022skip\u0022:0,\u0022count\u0022:4,\u0022columns\u0022:[\u0022EntityIndex\u0022,\u0022StepId\u0022,\u0022Category\u0022,\u0022Type\u0022,\u0022Name\u0022,\u0022RelationType\u0022,\u0022A1A3_kgCO2e\u0022,\u0022A1A5_kgCO2e\u0022],\u0022rows\u0022:[[3405,22475,\u0022IFCROO\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "WITH roof AS (\n  SELECT 3405 AS EntityIndex\n), children AS (\n  SELECT rel.EntityIndexA AS ChildIndex\n  FROM RelationText rel\n  JOIN roof r ON rel.EntityIndexB = r.EntityIndex\n)\nSELECT \n  COUNT(DISTINCT e.EntityIndex) AS ElementCount,\n  SUM(CAST(pa.Value AS DOUBLE)) AS Sum_A1A3_kgCO2e,\n  SUM(CAST(pb.Value AS DOUBLE)) AS Sum_A1A5_kgCO2e,\n  COUNT(DISTINCT CASE WHEN pa.Value IS NOT NULL OR pb.Value IS NOT NULL THEN e.EntityIndex END) AS ElementsWithEC\nFROM (\n  SELECT EntityIndex FROM roof\n  UNION ALL\n  SELECT ChildIndex AS EntityIndex FROM children\n) x\nJOIN EntityText e ON e.EntityIndex = x.EntityIndex\nLEFT JOIN ParameterText pa ON pa.EntityIndex = e.EntityIndex AND pa.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pa.Name = \u0027EmbodiedCarbon_A1A3_kgCO2e\u0027\nLEFT JOIN ParameterText pb ON pb.EntityIndex = e.EntityIndex AND pb.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027 AND pb.Name = \u0027EmbodiedCarbon_A1A5_kgCO2e\u0027;"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:1,\u0022skip\u0022:0,\u0022count\u0022:1,\u0022columns\u0022:[\u0022ElementCount\u0022,\u0022Sum_A1A3_kgCO2e\u0022,\u0022Sum_A1A5_kgCO2e\u0022,\u0022ElementsWithEC\u0022],\u0022rows\u0022:[[4,1838.5,2059.1,1]]}"
+      }
+    ]
+  },
+  {
+    "question": "What is the total embodied carbon (A1-A3) per storey?",
+    "answer": "Per storey total embodied carbon (A1\u2013A3) is: Level 1 98902.4 kgCO2e, Level 2 97393.6 kgCO2e, T/FDN 23522.6 kgCO2e, and Roof 11642 kgCO2e.  \nFrom ifc_sql, 4 rows, summing Pset_NRCEmbodiedCarbon.EmbodiedCarbon_A1A3_kgCO2e by storey via StoreyOfEntity.",
+    "turns": 4,
+    "inputTokens": 16989,
+    "outputTokens": 3430,
+    "toolCalls": [
+      {
+        "name": "ifc_open",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc"
+        },
+        "ok": true,
+        "summary": "{\u0022path\u0022:\u0022C:\\\\Users\\\\cdigg\\\\git\\\\bim-open-toolkit\\\\samples\\\\nrc\\\\duplex-enriched.ifc\u0022,\u0022schema\u0022:\u0022IFC2X3\u0022,\u0022entityCount\u0022:42664,\u0022openedUtc\u0022:\u00222026-09-18T21:58:27.7170\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT ParameterGroup, Name, ValueType, COUNT(*) AS Rows FROM ParameterText WHERE ParameterGroup LIKE \u0027Pset_NRC%\u0027 GROUP BY 1,2,3 ORDER BY ParameterGroup, Name LIMIT 500"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:20,\u0022skip\u0022:0,\u0022count\u0022:20,\u0022columns\u0022:[\u0022ParameterGroup\u0022,\u0022Name\u0022,\u0022ValueType\u0022,\u0022Rows\u0022],\u0022rows\u0022:[[\u0022Pset_NRCAnalyticsProvenance\u0022,\u0022AnalysisRunId\u0022,\u0022String\u0022,1],[\u0022Pset\u2026"
+      },
+      {
+        "name": "ifc_sql",
+        "args": {
+          "path": "C:\\Users\\cdigg\\git\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc",
+          "sql": "SELECT so.StoreyIndex, so.StoreyName, SUM(CAST(pt.Value AS DOUBLE)) AS EmbodiedCarbon_A1A3_kgCO2e\nFROM ParameterText pt\nJOIN StoreyOfEntity so ON so.EntityIndex = pt.EntityIndex\nWHERE pt.ParameterGroup = \u0027Pset_NRCEmbodiedCarbon\u0027\n  AND pt.Name = \u0027EmbodiedCarbon_A1A3_kgCO2e\u0027\n  AND pt.ValueType = \u0027Number\u0027\nGROUP BY 1,2\nORDER BY so.StoreyIndex"
+        },
+        "ok": true,
+        "summary": "{\u0022total\u0022:4,\u0022skip\u0022:0,\u0022count\u0022:4,\u0022columns\u0022:[\u0022StoreyIndex\u0022,\u0022StoreyName\u0022,\u0022EmbodiedCarbon_A1A3_kgCO2e\u0022],\u0022rows\u0022:[[133,\u0022Level 1\u0022,98902.4],[134,\u0022Level 2\u0022,97393.599999999\u2026"
+      }
+    ]
+  }
+]

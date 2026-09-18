@@ -67,5 +67,20 @@ entries are in `.claude/launch.json`.
 - One question (Q2) needed a second query: the agent's first grouping used the room, not the
   storey, and the transcript keeps both attempts.
 
+## Reproducing the figures with the toolkit's walkthrough
+
+The toolkit carries copies of this folder's data under `samples/nrc` and the graphs as seeded
+samples under `samples/nrc-analyses` (with tests that assert the expected numbers). One command
+regenerates every figure and both MCP transcripts:
+
+```bash
+npm run nrc:walkthrough --prefix bimopenflow/web
+```
+
+Its output index is copied here as `results/walkthrough-index.md`; the IFC MCP replay of Q1,
+Q5, Q7, and Q8 is `results/transcript-mcp-replay.md`. The unattended language-model run uses
+`bimopenmcp-ifc-ask` with `samples/nrc/questions.txt` (the eight questions verbatim) and is
+recorded as `results/transcript-unattended.md` and `results/results-unattended.json`.
+
 See [../paper/06-proof-of-concept.md](../paper/06-proof-of-concept.md) for the write-up and
 [../paper/poc-gap-report.md](../paper/poc-gap-report.md) for what did not work or was not done.

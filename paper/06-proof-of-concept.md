@@ -97,6 +97,54 @@ Two observations from the transcript matter more than the matches.
 The full transcript, including the wrong first attempt at Q2, is in
 [poc/results/transcript.md](../poc/results/transcript.md).
 
+**Mechanical replay.** The toolkit's `scripts/demo-ifc-mcp.mjs` replays the session's SQL for
+Q1, Q5, Q7, and Q8 over the IFC MCP server's stdio transport, the transport an MCP client
+uses, and checks each result against `expected_answers.json`. On 2026-09-18 all four matched;
+the transcript is [poc/results/transcript-mcp-replay.md](../poc/results/transcript-mcp-replay.md).
+This proves the connection and the tool surface end to end without a language model.
+
+**Unattended run, 2026-09-18.** The same eight questions, verbatim, were put to `gpt-5`
+through the toolkit's `bimopenmcp-ifc-ask` runner: one fresh conversation per question, the
+IFC MCP server in process, no human in the loop. The system prompt names the file, the views
+and their columns, and the rules (every number from a tool result; "not available" is a valid
+answer). Totals: 35 tool calls, 221,968 input and 30,144 output tokens, toolkit commit
+`66df499`. The transcript with every call is
+[poc/results/transcript-unattended.md](../poc/results/transcript-unattended.md); the per-question
+record is `results-unattended.json`.
+
+| # | Expected | Returned by gpt-5 | Calls | Match |
+|---|---|---|---|---|
+| Q1 | 37,196.2 | 37,196.2, from the building's own aggregate | 3 | yes |
+| Q2 | L2, marginally: 40.50 against 40.56 | Level 2, 40.499 against 40.557, grouped through `StoreyOfEntity` | 4 | yes, where the hand-driven session did not |
+| Q3 | walls 412.0, 410.8; cabinet 402.0; walls 399.7, 398.6 | the building (37,196.2) and the four storeys: the query ranked every entity carrying the property, containers included | 3 | no |
+| Q4 | 54.0, first of four | all four doors with STEP ids, 54.0 for #8066, and a question back about which one | 4 | yes |
+| Q5 | per analytics category: Wall 22,854.1, Floor 5,593.5, ... | per IFC class: IFCWALLSTANDARDCASE 17,547.4, IFCSLAB 5,816.9, ... over 16 rows that include the building and storey aggregates | 3 | partly: the recorded session's grouping, with container rows not excluded |
+| Q6 | run-2026-09-17-01, 2026-09-17 | same, from `Pset_NRCAnalyticsProvenance` | 4 | yes |
+| Q7 | not available | 1,838.5 kgCO2e A1-A3 from the roof's `IFCSLAB` member, stating that the `IFCROOF` itself carries none | 11 | no, and informative |
+| Q8 | L1 49,451.2; L2 48,696.8; T/FDN 11,761.3; Roof 5,821.0 | exactly double each: 98,902.4; 97,393.6; 23,522.6; 11,642.0 | 3 | no |
+
+Four matched, one partly, three did not, and the three misses share one cause that matters
+more for the storage recommendation than for the agent. The Layer 1 aggregates written on the
+storey and building entities carry the same property set and property name as the element
+values. An agent that sums or ranks "everything with `OperationalCarbon_kgCO2e_per_year`" then
+counts the building and the storeys as elements (Q3, Q5) and, when it groups elements by storey
+through `StoreyOfEntity`, adds the storey's own aggregate to its elements' sum and doubles every
+total (Q8). The hand-driven session avoided this by excluding the container classes in each
+query, which is the kind of knowledge a prompt can carry but a file should not need. Appendix
+A's recommendation should therefore give the aggregate sets their own names (for example
+`Pset_NRCStoreySummary`) or their own property names, so that a sum over the element property
+cannot include an aggregate of itself.
+
+Q7 is a different lesson. The generator wrote no set on the `IFCROOF`, but the roof is an
+assembly whose `IFCSLAB` member received values, and the agent found them, reported them, and
+said which entity carries them. The expected answer "not available" was the author's, and the
+agent's answer is the better one; the question should be read as being about the roof
+assembly, and the absence test in the question list should use an element with no analysed
+descendants.
+
+Q2 is the mirror image of the recorded session: the unattended agent used the storey view
+the toolkit gained after that session and got the expected ordering over all elements.
+
 ## 6.3 Case study B: door clearance, from code text to verdicts
 
 **Executed 2026-08-04.** This study shows a building-code provision expressed as a

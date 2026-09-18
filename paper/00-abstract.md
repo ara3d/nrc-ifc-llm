@@ -33,9 +33,12 @@ checker driven by a machine-readable provision file evaluated four accessible-do
 rules over 14 doors, produced 56 verdicts in all four categories with per-element evidence,
 matched an independently derived ground truth exactly, produced byte-identical output across
 repeated runs, and recorded a human override inside the IFC file in a form that can be removed
-to restore the original byte for byte. A second case study, natural-language questions over the
-same model enriched with carbon and energy analytics, is specified here and will be reported in
-the next revision.
+to restore the original byte for byte. A second case study enriched the same model with synthetic carbon and energy
+analytics (664 property sets, 2,438 typed values, written byte-exactly and reversibly), and
+answered eight natural-language questions at building, storey, component, category, provenance,
+and absence level through the tool surface, seven of them matching the independently computed
+expectation; the values are illustrative, not measured, and the paper says so wherever one
+appears.
 
 We close with the limitations of the work, the extensions the statement of work anticipates,
 including knowledge graphs and world-model substrates, and a roadmap for an open-source
