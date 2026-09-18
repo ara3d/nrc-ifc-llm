@@ -27,7 +27,8 @@ levels.
 | Recorded question session | `poc/results/transcript.md` |
 | Expected answers | `poc/results/expected_answers.json` |
 | Dataflow graphs for figures | `poc/graphs/*.json` |
-| Toolkit used | sibling clone `../bim-open-toolkit`, currently at commit `97740ae` or later |
+| Toolkit used | sibling clone `../bim-open-toolkit`, at commit `66df499` or later for the walkthrough |
+| Walkthrough that regenerates every figure and MCP transcript | `npm run nrc:walkthrough --prefix bimopenflow/web` in the toolkit; narrative in its `docs/nrc-walkthrough.md`; output index copied to `poc/results/walkthrough-index.md` |
 | Launch entries for host and web editor | `.claude/launch.json` (host on 5214, web on 5300) |
 | Earlier executed evidence (door clearance) | `door-clearance-demo.md`, `bos-validation-evidence.md` |
 
@@ -40,7 +41,11 @@ The toolkit's layout as of 2026-09-17: `src/data` (IFC loader, byte-exact editin
 
 Each item has a check that says when it is done. Do them in this order.
 
-### M1. A 3D colour-coded figure on the public model
+### M1. A 3D colour-coded figure on the public model (done 2026-09-18)
+
+Done in the toolkit: converter fix `53a69d9`, loader tolerance `53129a8`, the colouring graphs
+as seeded samples with tests `21e6b52`, and the walkthrough that captures them `66df499`.
+Figures 5 to 10 are in `paper/figures/` and Section 4 cites them. The original notes follow.
 
 The paper's display recommendation (Section 4) has no picture of analytics on geometry. The
 graphs exist and the host accepts them; the viewer fails to load `duplex.ifc`.
@@ -70,7 +75,14 @@ node poc/screenshots.mjs
 - Done when: four PNGs exist showing the Duplex model coloured, unmatched elements grey, and
   Section 4 cites them in place of the sentence that says the viewer could not load the model.
 
-### M2. An unattended language-model run of the question list
+### M2. An unattended language-model run of the question list (done 2026-09-18)
+
+The runner is `bimopenmcp-ifc-ask` in the toolkit (`f4bb2fa`, tests `13463b2`), with the
+question list in `samples/nrc/questions.txt`. Build with
+`npm run ifc:ask-build --prefix bimopenflow/web`, set `OPENAI_API_KEY_FILE`, and run it with
+`--model samples/nrc/duplex-enriched.ifc --questions samples/nrc/questions.txt --out ... --results ...`.
+It writes the transcript and a JSON results file with model name, tool calls, turns, and
+tokens per question; Section 6.2 reports the recorded run. The original notes follow.
 
 The transcript in `poc/results/transcript.md` was produced by the author choosing tool calls
 by hand. The acceptance criterion says questions are answered by an LLM-based agent.
@@ -100,7 +112,11 @@ where a number appears. The abstract currently does not.
 - Done when: either the run is on real data, or a search for numbers in
   `paper/00-abstract.md` and every figure caption finds the word synthetic next to them.
 
-### M4. Viewer comparison, at least three rows filled
+### M4. Viewer comparison, at least three rows filled (one row done)
+
+The toolkit viewer row is filled from the walkthrough (Section 4.3); the toolkit's 3D pane now
+shows the picked element's property sets, which covers the kit's step 4 for that viewer. Bonsai
+and one web viewer remain.
 
 Section 4.3 is a table of "to test". The test kit in `IFC-Test-Kit/README.md` gives seven
 steps. Run them in Bonsai, in one web viewer (That Open Components or IFClite), and in the
@@ -121,7 +137,10 @@ has a real citation for the Duplex model and the NBC.
 
 These go beyond the acceptance criteria. Each is independent; pick by value.
 
-### I1. Write the Layer 2 reference as an `IfcDocumentReference`
+### I1. Write the Layer 2 reference as an `IfcDocumentReference` (builder done)
+
+`IfcDocumentReferenceBuilder` landed in the toolkit (`6b34a54`); what remains is calling it from
+`poc/EnrichIfc/Program.cs` and re-verifying. The original notes follow.
 
 Section 3.4 recommends it; the run only wrote the URI into a property set. Extend
 `IfcPropertySetBuilder` in `bim-open-toolkit/src/data/Ara3D.Ifc.Editing` with a method that
@@ -130,14 +149,20 @@ project or building entity, following the same deterministic-GUID pattern. Add i
 `poc/EnrichIfc/Program.cs` and re-verify the diff, reversal, and hash. Cite the STEP lines in
 Appendix A.
 
-### I2. A storey-of-element view in the BOS text views
+### I2. A storey-of-element view in the BOS text views (done)
+
+`StoreyOfEntity` exists in `BosDuckDbViews.cs` and `IfcDuck.cs`; the seeded graph
+`nrc-storey-of-element` and Figure 10 use it. The original notes follow.
 
 The Q2 miss came from walking `ContainedIn` but not `PartOf`. Add a `StoreyOfEntity` view in
 `bim-open-toolkit/src/mcp/BimOpenMcp.Ifc/IfcDuck.cs` (next to `EntityText`, `ParameterText`,
 `RelationText`) that resolves every entity to its storey through both relations. Rerun Q2;
 the agent should then get 103 Level 1 elements and the expected ordering.
 
-### I3. Typed values through `sink.writePsets`
+### I3. Typed values through `sink.writePsets` (done)
+
+The node takes a `valueType` column; `nrc-enrich-run` is the one-graph enrichment. The original
+notes follow.
 
 The dataflow node writes every value as `IFCTEXT`
 (`bim-open-toolkit/src/flow/BimOpenFlow.Nodes.Effects/WritePsetsNode.cs`). Accept an optional
@@ -154,7 +179,9 @@ Author `poc/nrc-analytics.ids` (IDS 1.0 XML) requiring `Pset_NRCOperationalCarbo
 `ifctester` is the simplest) and put the pass/fail counts in Section 8.2. This turns the
 recommendation's item 6 from future work into evidence.
 
-### I5. Compliance verdicts as a graph, not a test project
+### I5. Compliance verdicts as a graph, not a test project (done)
+
+`nrc-dc-w1-verdicts` is that graph; Figures 8 and 9 show it. The original notes follow.
 
 Rebuild rule DC-W1 with the compliance node pack (`check.rule` over a table of doors with
 `OverallWidth`), colour the model by verdict with `view3d.color`, and write the verdicts back
@@ -177,7 +204,7 @@ The IFC stack targets `net8.0-windows` only because of the loader project. If th
 web-ifc dependency is the only reason, a Linux build of the MCP server would let reviewers run
 the demo. Worth a paragraph in Section 7 either way.
 
-### I9. Fix the environment-dependent toolkit test
+### I9. Fix the environment-dependent toolkit test (done)
 
 `BimSampleSeedingTests.EmptyStore_SeedsBimAndView3dSamples` in
 `bim-open-toolkit/tests/flow/BimOpenFlow.BimWorkflows.Tests` fails on any machine that has the
