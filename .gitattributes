@@ -1,0 +1,3 @@
+# IFC files are byte-exact artefacts; never convert line endings.
+*.ifc -text
+*.bos binary
