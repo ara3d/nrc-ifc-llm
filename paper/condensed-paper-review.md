@@ -71,3 +71,34 @@ At 5,240 words it renders to 11 pages. Three cuts, in order:
 3. **Section 6.1, first paragraph (about 120 words).** The procedure repeats what Section 3 established about the writer. Keep the enrichment counts and "expected answers were computed from the CSV alone"; drop the rest. Lost: nothing the reader has not already been told.
 
 Together these recover roughly 600 words, about one page.
+
+## Fixes applied, 2026-09-27
+
+Length cuts (section 5) were out of scope for this pass and were not applied. Every defect and design note below was checked against `paper/nrc-style-paper.md` or `storing-analytics-in-ifc.md` before it was fixed; none turned out to be wrong.
+
+### Defects
+
+1. **Visualisation metadata row.** Fixed. Checked `storing-analytics-in-ifc.md`'s "Practical ranking" table (ten rows, no such mechanism) and confirmed the row and its scores were not in either source; removed it from Table 1.
+2. **Table 2, Q5.** Fixed. The full paper's Table 8 (hand-driven) and Table 9 (unattended) carry two different "expected" values for the same question; the condensed table's single Expected column kept the unattended one. The hand-driven cell now reads "Match against the per-class expectation (walls 17,547.4)," the wording the review suggested.
+3. **Table 2, match counts.** Fixed. Both Q4 cells now start "Match:", so the table itself supports "seven of eight" (hand-driven) and "four of eight" (unattended, Q4 counted as the full paper's Table 9 counts it).
+4. **Section 5, second surface.** Fixed. The BimOpenFlow MCP server has six tools; `editGraph` is the one that applies the four graph operations. Confirmed against the full paper's section 7.4 and Annex C.2.
+5. **Section 4, viewer paragraph.** Fixed. Confirmed against the full paper's Table 5: FreeCAD is "Partial" and FZKViewer's external-table column is "No," not "requires scripting."
+6. **Section 3, Layer 2 columns.** Fixed. Restored `MetricName` and `Confidence`, matching the full paper's twelve-column list in section 5.4.
+7. **Section 3, last sentence.** Fixed. Added "the fourth is a document," matching the full paper's section 5.6 ("Measure 4 is a document") and consistent with the condensed paper's own Section 7, which already says the dictionary is not implemented.
+
+### Design notes
+
+- **Abstract, "56 verdicts... door by door."** Fixed. Confirmed against section 8.3 of the full paper: only DC-W1 was checked against the door-by-door ground truth. The sentence now says so, and covers all four verdict categories separately.
+- **Abstract drops the match counts.** Fixed, in the same sentence as above: added "seven of eight... four of eight."
+- **"A typical answer is two calls."** Fixed. The full paper's Table 8 shows the hand-driven session took one or two calls per question; changed to "one to two calls in the hand-driven session."
+- **Dataflow figures clause.** Fixed. Restored "ten correct graphs, one honest answer without a graph, and one correctly empty graph with an explanation," matching the full paper's section 7.4. The mid-sized model's "eleven and one" result was left out, as the review allowed ("restore one clause").
+- **"Twelve mechanisms" against an eleven-row table.** Not applied. This note was not in the assignment's list of design notes to apply. It is now largely moot: removing the Visualisation metadata row (defect 1) brought Table 1 to ten rows, the same count as the full paper's own Table 4, so the residual "twelve" in the caption is a gap the full paper has too, not one the condensing introduced.
+- **Figure 2 caption, `check.rule`.** Fixed. `check.rule` is defined in Section 5, after Figure 2 in Section 4; the caption now says "a rule node."
+- **Section 8, near-term list (four items against the full paper's five).** Not applied. Not in the assignment's list of design notes to apply, and out of scope alongside the aggregate-renaming work reserved for TKT-48 in `bim-open-toolkit`.
+- **456,598-instance building.** Fixed. Confirmed the building is a private sample (the full paper's Figure 11 caption says so, and the toolkit repository keeps it outside the repository); added "a private sample" where the count is given.
+- **Undefined terms.** Fixed, all four: STEP is expanded at its first use in the abstract; "text views" is defined at its first use in Section 5, from the full paper's Annex C description of `EntityText`, `ParameterText`, and `RelationText`; FZK-Haus is now cited [19] where named, with the reference entry restored from the full paper's list (the condensed paper had dropped it even though it used the number); reference [29] is removed, since the condensed paper's body never cites it.
+- **Section 2 and Section 5 both say the model cannot read the file.** Fixed, with one deviation from the review's literal instruction to "cut two sentences from Section 2." Section 2's paragraph has two sentences: one duplicating Section 5's point about the model and the file, and one defining MCP itself with its only citation, [7]. Cutting both would have left [7] cited nowhere in the body, the same defect just fixed for [29]. Only the duplicated sentence was cut; the MCP definition and its citation stay.
+
+### Found but not fixed
+
+- Cutting reference [7]'s only citation, as the literal reading of the Section 2 design note would have done, would have created a new orphaned reference. Worth a general check next time a paper edit removes a sentence that happens to carry a citation.
