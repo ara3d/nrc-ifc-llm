@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "bimopen-ifc": {
+      "command": "dotnet",
+      "args": [
+        "bim-open-toolkit/artifacts/bim-flow-ifc/mcp/bimopenmcp-ifc.dll"
+      ]
+    }
+  }
+}

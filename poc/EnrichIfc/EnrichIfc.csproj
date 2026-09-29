@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Writes the synthetic NRC analytics property sets into duplex.ifc byte-exactly, using the
-       BIM Open Toolkit editing library from a sibling clone (../../../bim-open-toolkit). -->
+       BIM Open Toolkit editing library from a submodule (../../bim-open-toolkit). -->
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\bim-open-toolkit\src\data\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
+    <ProjectReference Include="..\..\bim-open-toolkit\src\data\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
   </ItemGroup>
 
 </Project>

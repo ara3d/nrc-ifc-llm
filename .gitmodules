@@ -1,0 +1,3 @@
+[submodule "bim-open-toolkit"]
+	path = bim-open-toolkit
+	url = https://github.com/ara3d/bim-open-toolkit

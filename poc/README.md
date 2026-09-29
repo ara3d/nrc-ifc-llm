@@ -31,7 +31,7 @@ from an analysis tool.
 
 ## Reproducing
 
-The toolkit is expected as a sibling clone at `../bim-open-toolkit`.
+The toolkit is a git submodule at `bim-open-toolkit/`. After cloning this repository, run `git submodule update --init --recursive`.
 
 ```bash
 python poc/generate_synthetic_analytics.py

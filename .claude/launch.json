@@ -7,7 +7,7 @@
       "runtimeArgs": [
         "run",
         "--project",
-        "C:/Users/cdigg/git/bim-open-toolkit/src/flow/BimOpenFlow.Host",
+        "C:/Users/cdigg/git/nrc-ifc-llm/bim-open-toolkit/src/flow/BimOpenFlow.Host",
         "--no-build",
         "--",
         "--port",
@@ -28,7 +28,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "--prefix",
-        "C:/Users/cdigg/git/bim-open-toolkit/bimopenflow/web",
+        "C:/Users/cdigg/git/nrc-ifc-llm/bim-open-toolkit/bimopenflow/web",
         "run",
         "web"
       ],
