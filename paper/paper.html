@@ -1,0 +1,2439 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Storing, Displaying, and Querying Building Analytics on IFC Models</title>
+<style>
+@page { size: Letter; margin: 2.2cm 2cm; }
+body {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 10.8pt;
+  line-height: 1.45;
+  color: #1a1a1a;
+  max-width: 100%;
+}
+h1 { font-size: 18pt; margin-top: 1.6em; page-break-before: always; }
+body > h1:first-of-type { page-break-before: avoid; }
+h2 { font-size: 14pt; margin-top: 1.4em; border-bottom: 1px solid #ccc; padding-bottom: 0.15em; }
+h3 { font-size: 12pt; margin-top: 1.2em; }
+h4 { font-size: 11pt; margin-top: 1em; }
+p, li { orphans: 3; widows: 3; }
+code, pre {
+  font-family: "Consolas", "Menlo", monospace;
+  font-size: 9pt;
+  background: #f4f4f4;
+}
+pre {
+  padding: 0.6em 0.8em;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 9.5pt;
+}
+th, td {
+  border: 1px solid #999;
+  padding: 4px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #eee; }
+img {
+  max-width: 100%;
+  display: block;
+  margin: 0.8em auto;
+  border: 1px solid #ccc;
+}
+blockquote {
+  border-left: 3px solid #ccc;
+  margin: 0.8em 0;
+  padding: 0.2em 1em;
+  color: #444;
+}
+em { color: #333; }
+a { color: #114488; text-decoration: none; }
+hr { border: none; border-top: 1px solid #ccc; margin: 1.6em 0; }
+</style>
+</head>
+<body>
+<h1 id="storing-displaying-and-querying-building-analytics-on-ifc-models-with-an-llm-agent-layer">Storing, Displaying, and Querying Building Analytics on IFC Models with an LLM Agent Layer</h1>
+<p><em>Christopher Diggins, Ara 3D / Studio 2.5, for the National Research Council of Canada. Draft of 2026-09-16.</em></p>
+<h2 id="abstract">Abstract</h2>
+<p>Building performance analytics such as embodied carbon, operational carbon, and energy use
+intensity are usually computed by tools that sit outside the building information model. The
+results end up in spreadsheets and reports that cannot be joined back to the geometry, cannot be
+validated against an information requirement, and cannot be asked about in plain language.</p>
+<p>This paper examines three connected questions for openBIM workflows built on the Industry
+Foundation Classes (IFC): where analytics should be stored so that they travel with the model,
+how they should be displayed on the geometry, and how a large language model (LLM) can be placed in
+front of an enriched model so that people can query it in natural language.</p>
+<p>We compare twelve storage options available within the IFC 4.3 schema and recommend a
+three-layer approach: scalar summary values in custom property sets at element, space, storey,
+and building level; a reference from the IFC file to a richer external columnar dataset joined
+on <code>GlobalId</code>; and a small metric dictionary that fixes names, units, and lifecycle stages so
+that queries resolve reliably. We survey display techniques and open-source viewers, and
+recommend colour mapping and aggregated views driven by the same tables the analytics are
+stored in.</p>
+<p>For the query layer we argue against giving an LLM the raw IFC file, and for a small typed,
+read-only tool surface exposed over the Model Context Protocol (MCP). We describe an
+implementation that converts IFC to the columnar BIM Open Schema, loads it into DuckDB, and
+exposes 29 tools, and a dataflow graph in which the agent builds queries, colourings, and rule
+checks with the same four editing operations a person uses.</p>
+<p>The proof of concept was carried out on the buildingSMART Duplex Apartment model. A rule
+checker driven by a machine-readable provision file evaluated four accessible-door-clearance
+rules over 14 doors, produced 56 verdicts in all four categories with per-element evidence,
+matched an independently derived ground truth exactly, produced byte-identical output across
+repeated runs, and recorded a human override inside the IFC file in a form that can be removed
+to restore the original byte for byte. A second case study enriched the same model with synthetic carbon and energy
+analytics (664 property sets, 2,438 typed values, written byte-exactly and reversibly), and
+answered eight natural-language questions at building, storey, component, category, provenance,
+and absence level through the tool surface, seven of them matching the independently computed
+expectation; the values are illustrative, not measured, and the paper says so wherever one
+appears.</p>
+<p>We close with the limitations of the work, the extensions the statement of work anticipates,
+including knowledge graphs and world-model substrates, and a roadmap for an open-source
+viewer in which selection, colouring, and property write-back are first-class agent operations.</p>
+<h1 id="1-introduction">1. Introduction</h1>
+<h2 id="11-the-problem">1.1 The problem</h2>
+<p>The National Research Council of Canada (NRC) produces analytics on building models: operational
+carbon, embodied carbon, energy use, and related performance indicators. These are computed by
+simulation and life-cycle assessment tools whose inputs may be derived from an IFC model but whose
+outputs are not written back to it. The numbers live in the tools' own databases, in CSV exports,
+and in PDF reports.</p>
+<p>Three things become hard once the results have left the model:</p>
+<ol>
+<li><strong>Showing them.</strong> A designer cannot open the model and see which walls carry the most embodied
+   carbon, because the model does not know.</li>
+<li><strong>Reusing them.</strong> A downstream tool, or a later project phase, cannot find the results without
+   the original tool and its project file. There is no standard place to look.</li>
+<li><strong>Asking about them.</strong> Questions such as "what is the total operational carbon on Level 2" or
+   "which doors fail the clearance rule" require someone who knows both the analysis tool and the
+   model.</li>
+</ol>
+<p>The IFC schema has mechanisms that could hold these results. The Information Delivery
+Specification (IDS) can state which results a delivered model must carry. Large language models
+can turn a question into a query. None of these pieces is new, but there is no settled practice
+for putting them together, and the obvious approach, handing the LLM the IFC file, does not
+work at the scale of real models.</p>
+<h2 id="12-questions-this-paper-answers">1.2 Questions this paper answers</h2>
+<p>The statement of work sets three objectives and a publication. The paper is organised around
+them.</p>
+<ul>
+<li><strong>Storage.</strong> Which IFC mechanisms should carry analytics, at component, zone, storey, and
+  building level, so that the data is portable, reusable, and queryable? (Section 3)</li>
+<li><strong>Display.</strong> How should analytics be shown on IFC geometry, and which freely available viewers
+  and libraries support it? (Section 4)</li>
+<li><strong>Query.</strong> How should an LLM-based layer be built so that it answers natural-language questions
+  about an enriched model correctly, and so that its answers can be checked? (Section 5)</li>
+<li><strong>Evidence.</strong> What does a working proof of concept look like, and what did it find? (Section 6)</li>
+</ul>
+<h2 id="13-contributions">1.3 Contributions</h2>
+<ol>
+<li>A comparison of twelve storage options within IFC 4.3, ranked on portability, queryability,
+   interoperability, and scalability, with a three-layer recommendation and concrete property-set
+   definitions (Section 3, Appendix A).</li>
+<li>An argument, supported by an implementation, that the LLM should sit behind a small typed
+   read-only tool surface over a columnar copy of the model rather than reading the IFC file, and
+   a description of that surface (Section 5, Appendix C).</li>
+<li>A byte-exact write-back path for property sets, so that analytics, verdicts, and human
+   overrides can be added to a client's IFC file without altering any byte the writer did not
+   intend to change (Sections 3.5 and 6.3).</li>
+<li>An executed, reproducible demonstration on a public model: a machine-readable provision file,
+   a checker, four verdict categories, independently derived ground truth, hash-verified
+   determinism, and a reversible override recorded in the IFC (Section 6).</li>
+<li>A roadmap for an open bidirectional viewer in which selection, colouring, viewpoints, and
+   write-back are operations an agent can call (Section 9).</li>
+</ol>
+<h2 id="14-scope-and-exclusions">1.4 Scope and exclusions</h2>
+<p>The proof of concept is a minimal one. It is not a production viewer, not a certified compliance
+checker, and not a replacement for the client's analysis tools. Geometry authoring is out of
+scope. The models used are public samples; NRC's own models and analytics datasets, once
+supplied, will be used to repeat the runs reported in Section 6.</p>
+<h2 id="15-how-to-read-this-paper">1.5 How to read this paper</h2>
+<p>Sections 3 and 4 are the options analysis (deliverable D1) and can be read on their own.
+Sections 5 and 6 describe the proof of concept (deliverable D2). Sections 7 to 9 look forward.
+Readers who want only the recommendations should read Sections 3.6, 4.4, and 5.6.</p>
+<h1 id="2-background">2. Background</h1>
+<p>This section gives the minimum needed to follow the rest of the paper. Readers familiar with
+IFC, IDS, and MCP can skip to Section 3.</p>
+<h2 id="21-ifc-and-its-property-mechanisms">2.1 IFC and its property mechanisms</h2>
+<p>IFC is an ISO standard (ISO 16739) schema for building information, most often exchanged as
+STEP Physical Files (<code>.ifc</code>). A file is a list of numbered entities. Each building element is an
+entity such as <code>IFCDOOR</code> or <code>IFCWALL</code>, with a <code>GlobalId</code> that is meant to be stable across
+exports and tools. Elements are placed in a spatial hierarchy of project, site, building,
+storey, and space through <code>IFCRELCONTAINEDINSPATIALSTRUCTURE</code>.</p>
+<p>IFC has several ways to attach data to an element, and Section 3 compares them. The one that
+matters most for this paper is the property set. A property set (<code>IFCPROPERTYSET</code>) is a named
+group of properties; a single-value property (<code>IFCPROPERTYSINGLEVALUE</code>) carries a name, a typed
+value, and an optional unit; and a relationship (<code>IFCRELDEFINESBYPROPERTIES</code>) attaches the set
+to one or more elements. Standard sets are prefixed <code>Pset_</code>; anyone may define custom sets.</p>
+<p>Three consequences shape everything that follows.</p>
+<ul>
+<li><strong>Property names are the schema.</strong> Two tools that both write <code>EmbodiedCarbon</code> as a property
+  can still disagree on units, lifecycle stage, and method. Portability of the file does not
+  give portability of the meaning.</li>
+<li><strong>The file is a text serialisation of an object graph.</strong> Reading any one fact requires
+  parsing the whole file. The Duplex Apartment model used in this paper has 38,898 entities;
+  larger buildings run to millions.</li>
+<li><strong>Writing is fragile.</strong> Most IFC libraries load the file into their own object model and
+  re-serialise it, which changes entity numbering, formatting, and sometimes content. A client
+  who receives an "enriched" file that differs everywhere from the one they sent has no easy
+  way to check what changed.</li>
+</ul>
+<h2 id="22-information-delivery-specification">2.2 Information Delivery Specification</h2>
+<p>IDS is a buildingSMART standard (IDS 1.0, June 2024) for machine-readable information
+requirements. An IDS file states, for a class of objects (its applicability), what those
+objects must contain (its requirements): a property with a certain name and permitted values,
+a classification, a material, an attribute. Validators check an IFC file against an IDS and
+report pass or fail per element.</p>
+<p>For this project IDS matters in two ways. NRC already has an IDS framework, so any property
+set the paper recommends should be one an IDS can require. And the applicability-plus-
+requirements shape of an IDS specification is the same shape as a code-compliance rule, which
+Section 6 uses. The repository document <a href="../ids.md">ids.md</a> gives a longer introduction.</p>
+<h2 id="23-linked-data-and-ifc-lbd">2.3 Linked data and IFC-LBD</h2>
+<p>The Linked Building Data community expresses building information as RDF graphs, using
+ontologies such as BOT (Building Topology Ontology) and mappings from IFC (IFC-LBD, ifcOWL).
+This representation is well suited to joining building data with other graphs and to
+reasoning. It is included in the storage comparison in Section 3 and treated as a future
+extension in Section 8, because the client's current workflow is file-based and the tooling for
+LBD is less mature than that for IFC files and columnar tables.</p>
+<h2 id="24-large-language-models-as-query-interfaces">2.4 Large language models as query interfaces</h2>
+<p>An LLM can turn a natural-language question into a structured query, but it has no reliable way
+to read a 40,000-entity STEP file. Practical systems give the model tools: functions it may
+call, with typed arguments and results, that do the reading. The Model Context Protocol (MCP)
+is an open standard for describing such tools and calling them over a stream, so that any
+MCP-capable client (Claude Code, other chat clients, or a custom agent) can use a server
+written once.</p>
+<p>The repository document <a href="../mcp-ifc.md">mcp-ifc.md</a> surveys seven IFC MCP servers that existed
+in mid-2026. They fall into three patterns: fixed query functions over one loaded file; a
+generic selector plus generic edit operation; and arbitrary Python execution through IfcOpenShell
+or Blender. None of them provided persistent element sets, joins with external tables, or
+analytics written back into the file. Section 5 describes the design chosen here in that light.</p>
+<h2 id="25-bim-open-schema-and-the-toolkit-used">2.5 BIM Open Schema and the toolkit used</h2>
+<p>The proof of concept is built on the open-source BIM Open Toolkit (MIT licence). Two parts of
+it are used.</p>
+<p><strong>BIM Open Schema (BOS)</strong> is a columnar representation of a building model: one table each for
+entities, parameters, relations, and geometry, with strings and numbers pooled. Parameters are
+stored entity-attribute-value, one table per primitive type. Relations use a closed vocabulary
+(<code>PartOf</code>, <code>ContainedIn</code>, <code>HostedBy</code>, <code>BoundedBy</code>) that covers both IFC and the Revit API. A
+<code>.bos</code> file is a zip of Parquet tables and loads directly into DuckDB. A converter turns an IFC
+file into BOS in one pass.</p>
+<p><strong>BimOpenFlow</strong> is a dataflow graph over those tables. Nodes are small pure functions from
+tables to tables; a graph is a JSON document; and four operations (<code>addNode</code>, <code>connect</code>,
+<code>setParam</code>, <code>removeNode</code>) back the HTTP API, the MCP tools, and every gesture in the web
+editor. Nodes that write files, including the one that writes property sets into IFC, run only
+inside an explicit run, and each run records the graph hash and every input by content hash.</p>
+<p>The toolkit also contains a byte-exact IFC editing library, <code>Ara3D.Ifc.Editing</code>, which locates
+entities by byte range in the source file and writes additions as an appended patch, so that
+every byte the writer did not touch is preserved. This is the basis of the write-back path in
+Sections 3.5 and 6.3.</p>
+<h1 id="3-storage-options-and-recommendation">3. Storage options and recommendation</h1>
+<p>This section answers the first objective: where should analytics live so that they are
+portable, reusable, and queryable at component, zone, storey, and building level. It condenses
+the longer options brief in <a href="../storing-analytics-in-ifc.md">storing-analytics-in-ifc.md</a>.</p>
+<h2 id="31-what-storing-analytics-in-ifc-has-to-achieve">3.1 What "storing analytics in IFC" has to achieve</h2>
+<p>An analytics value is more than a number. To be reusable it needs, at minimum:</p>
+<ul>
+<li>the element or spatial container it describes (<code>GlobalId</code>);</li>
+<li>the metric (embodied carbon, energy use intensity);</li>
+<li>the unit;</li>
+<li>the lifecycle stage or time basis (A1 to A3, A1 to A5, annual);</li>
+<li>the scenario (baseline, retrofit option 2);</li>
+<li>the run that produced it, with the tool, method, and date.</li>
+</ul>
+<p>Any storage option is judged on how much of this it can carry, and on four properties:
+<strong>portability</strong> (does the value travel with the file), <strong>queryability</strong> (can a tool or an LLM
+find it without special knowledge), <strong>interoperability</strong> (do other IFC tools read it), and
+<strong>scalability</strong> (does it still work for thousands of metrics, many scenarios, or time series).</p>
+<h2 id="32-the-twelve-options">3.2 The twelve options</h2>
+<p>The options brief examines twelve mechanisms. They are summarised here; the brief gives the
+IFC entity references and a fuller discussion of each.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Option</th>
+<th>Mechanism</th>
+<th>Best for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Custom property sets</td>
+<td><code>IfcPropertySet</code> on elements and containers</td>
+<td>Summary values for display and query</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Standard environmental Psets</td>
+<td><code>Pset_EnvironmentalImpactIndicators</code> and related</td>
+<td>Standards-aligned LCA fields</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Element quantities</td>
+<td><code>IfcElementQuantity</code></td>
+<td>Takeoff inputs (areas, volumes)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Material properties</td>
+<td><code>IfcMaterialProperties</code></td>
+<td>Carbon factors, EPD data per material</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Spatial aggregates</td>
+<td>Property sets on space, storey, building</td>
+<td>Dashboards and roll-ups</td>
+</tr>
+<tr>
+<td>6</td>
+<td>External dataset reference</td>
+<td><code>IfcDocumentReference</code> plus join key</td>
+<td>Full analytics tables, time series</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Library references</td>
+<td><code>IfcLibraryInformation</code></td>
+<td>Reusable metric definitions</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Classification references</td>
+<td><code>IfcClassificationReference</code>, bsDD</td>
+<td>Semantic tagging of metrics</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Performance history</td>
+<td><code>IfcPerformanceHistory</code></td>
+<td>Operational, time-based performance</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Constraints and metrics</td>
+<td><code>IfcMetric</code>, <code>IfcObjective</code>, <code>IfcConstraint</code></td>
+<td>Targets and pass/fail</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Visualisation metadata</td>
+<td>Colour and legend properties</td>
+<td>Presentation hints</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Custom schema extension</td>
+<td>New entity types</td>
+<td>Research; not portable</td>
+</tr>
+</tbody>
+</table>
+<p>Two of the twelve stand out. Option 1 is the simplest and the most widely readable: almost every
+IFC viewer shows property sets, and "colour every element by property X" is a standard viewer
+feature. Option 6 is the only one that scales: an external Parquet or DuckDB table holds
+millions of rows without bloating the IFC, and the IFC keeps a pointer and a join key. The
+others are refinements that add meaning (7, 8, 10), cover a special case (3, 4, 9), or should
+be avoided for a portability-first project (12).</p>
+<h2 id="33-comparison-matrix">3.3 Comparison matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Portability</th>
+<th>Queryability</th>
+<th>Interoperability</th>
+<th>Scalability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Custom property sets</td>
+<td>High</td>
+<td>High</td>
+<td>Medium to high</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Standard environmental Psets</td>
+<td>High</td>
+<td>High</td>
+<td>Medium</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Element quantities</td>
+<td>High</td>
+<td>High</td>
+<td>High</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Material properties</td>
+<td>High</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Spatial aggregates</td>
+<td>High</td>
+<td>High</td>
+<td>Medium</td>
+<td>High</td>
+</tr>
+<tr>
+<td>External dataset reference</td>
+<td>Medium</td>
+<td>Very high</td>
+<td>Medium</td>
+<td>Very high</td>
+</tr>
+<tr>
+<td>Library and classification references</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Medium to high</td>
+<td>High</td>
+</tr>
+<tr>
+<td><code>IfcPerformanceHistory</code></td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Low to medium</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Constraints, objectives, metrics</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Low to medium</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Custom schema extension</td>
+<td>Low</td>
+<td>High with custom tools</td>
+<td>Low</td>
+<td>Medium</td>
+</tr>
+</tbody>
+</table>
+<p>Portability is scored on whether the value is inside the <code>.ifc</code> file. Queryability is scored on
+whether a generic IFC parser, or an LLM with generic tools, can find it by name. Interoperability
+is scored on how many existing viewers and checkers understand the mechanism.</p>
+<h2 id="34-the-three-layer-recommendation">3.4 The three-layer recommendation</h2>
+<p>No single option satisfies all four properties. The recommendation is to use three together,
+each doing the job it is best at.</p>
+<p><strong>Layer 1: summary values in custom property sets.</strong> Write the scalar values that people look
+at, filter by, colour by, and ask about, directly into property sets on elements and on spatial
+containers. Use one set per topic so that a viewer's property panel stays readable and an IDS can
+require the topic as a unit:</p>
+<pre><code class="language-text">Pset_NRCEmbodiedCarbon
+Pset_NRCOperationalCarbon
+Pset_NRCEnergyPerformance
+Pset_NRCAnalyticsProvenance
+</code></pre>
+<p>Every set carries <code>ScenarioName</code> and <code>AnalysisRunId</code> so that a value can never be separated from
+the run that produced it. Units and lifecycle stages are in the property names
+(<code>EmbodiedCarbon_A1A3_kgCO2e</code>) so that they survive tools that drop the IFC unit assignment.
+Appendix A gives the full definitions.</p>
+<p><strong>Layer 2: a reference to the full dataset.</strong> Attach an <code>IfcDocumentReference</code> to the project
+(or to the building) that names the external result table, its format, its checksum, and the
+join key. The external table is long-format, one row per (run, element, metric), so that new
+metrics never require a schema change:</p>
+<pre><code class="language-text">AnalysisRunId, GlobalId, IfcClass, MetricId, MetricName, Value, Unit,
+LifecycleStage, Scenario, Source, Confidence, ComputationMethod
+</code></pre>
+<p>Parquet is the recommended format: it is columnar, compressed, typed, and loads into DuckDB,
+pandas, and every lakehouse tool. CSV is acceptable for small datasets and for human
+inspection.</p>
+<p><strong>Layer 3: a metric dictionary.</strong> Define a short list of metric identifiers and map each property
+name in Layer 1 and each <code>MetricId</code> in Layer 2 to one of them:</p>
+<pre><code class="language-text">NRC.EC.A1A3.TOTAL      Embodied carbon, stages A1 to A3, kgCO2e
+NRC.EC.A1A5.TOTAL      Embodied carbon, stages A1 to A5, kgCO2e
+NRC.OC.ANNUAL          Operational carbon, kgCO2e per year
+NRC.EUI.ANNUAL         Energy use intensity, kWh per m2 per year
+NRC.GWP.MATERIAL_FACTOR Global warming potential factor per material unit
+</code></pre>
+<p>The dictionary can be published as an IFC library reference, as a bsDD domain, or simply as a
+versioned JSON file shipped with the IDS. Its purpose is to give the query layer (Section 5)
+one place to resolve "carbon" to a column, and to give an IDS one vocabulary to require.</p>
+<h2 id="35-writing-property-sets-without-disturbing-the-file">3.5 Writing property sets without disturbing the file</h2>
+<p>Layer 1 requires writing into a client's IFC file. Section 2.1 noted that most libraries
+re-serialise the whole file. The toolkit's editing library instead treats the source file as
+bytes, finds the highest entity id and the owner-history entity, and appends new entities. For
+one element and one property set it emits N <code>IFCPROPERTYSINGLEVALUE</code> lines, one
+<code>IFCPROPERTYSET</code>, and one <code>IFCRELDEFINESBYPROPERTIES</code>. The <code>GlobalId</code> of each new entity is a
+deterministic hash of a caller-supplied key, so running the writer twice produces the same
+bytes.</p>
+<pre><code class="language-csharp">var original = IfcSourceFile.Load(sourcePath);
+var builder = new IfcPropertySetBuilder(
+    original.MaxId + 1,
+    original.FirstIdOfType(&quot;IFCOWNERHISTORY&quot;));
+
+builder.AddPropertySet(wall.Id, &quot;Pset_NRCEmbodiedCarbon&quot;,
+    new[]
+    {
+        IfcPropertyValue.Real(&quot;EmbodiedCarbon_A1A3_kgCO2e&quot;, 412.7),
+        IfcPropertyValue.Label(&quot;ScenarioName&quot;, &quot;Baseline&quot;),
+        IfcPropertyValue.Label(&quot;AnalysisRunId&quot;, &quot;run-2026-07-14-01&quot;),
+    },
+    guidKey: $&quot;analytics:{wall.GlobalId}:Pset_NRCEmbodiedCarbon&quot;);
+
+File.WriteAllBytes(targetPath, IfcPatcher.Append(original, builder.Lines));
+</code></pre>
+<p>An entity-level diff (<code>IfcDiff.Compare</code>) then reports exactly which entities were added, and
+<code>IfcPatcher.Remove</code> takes them out again. Section 6.3 shows this round trip verified byte for
+byte on the Duplex model. The same path is exposed as the <code>sink.writePsets</code> node in the dataflow
+graph, where it runs only inside an explicit run.</p>
+<p>The practical consequence for NRC is that an enriched file can be given back to a model author
+with a diff that lists the additions and nothing else, and the author can strip the additions
+and recover their original file exactly.</p>
+<h2 id="36-recommendation-in-brief">3.6 Recommendation in brief</h2>
+<ol>
+<li>Write summary analytics into custom property sets on elements, spaces, storeys, buildings,
+   and the project, using the definitions in Appendix A.</li>
+<li>Put units, lifecycle stage, scenario, run id, and provenance in every set.</li>
+<li>Reference the full result table from the IFC with an <code>IfcDocumentReference</code>, joined on
+   <code>GlobalId</code>, stored as Parquet.</li>
+<li>Publish a small metric dictionary and map every property and metric id to it.</li>
+<li>Write with a byte-exact patch, never a re-serialisation, so that additions are auditable and
+   reversible.</li>
+<li>Express items 1 to 4 as an IDS specification so that delivered models can be validated.</li>
+</ol>
+<p>Items 1, 3, and 5 are implemented and tested in the toolkit. Item 4 is a document. Item 6 is
+future work (Section 8).</p>
+<h1 id="4-display-options-and-recommendation">4. Display options and recommendation</h1>
+<p>This section answers the second objective: how analytics should be shown on IFC geometry, and
+what freely available software supports it. The viewer inventory in
+<a href="../ifc-viewers.md">ifc-viewers.md</a> lists the candidates; this section selects among them.</p>
+<blockquote>
+<p><strong>Status.</strong> Every figure in this section was captured on 2026-09-18 by the toolkit's
+walkthrough script (<code>scripts/nrc-walkthrough.mjs</code>, toolkit commit <code>66df499</code>) from the seeded
+graphs in <code>samples/nrc-analyses</code>; the captures and their captions are indexed in
+<a href="../poc/results/walkthrough-index.md">poc/results/walkthrough-index.md</a>. The 3D views load
+because the toolkit's IFC-to-BOS converter now drops a non-finite instance transform
+(toolkit commit <code>53a69d9</code>) and the web loader hides one instead of rejecting the model
+(<code>53129a8</code>). The comparison matrix in 4.3 has one row filled, the toolkit's own viewer; the
+other viewers have not been run through the <a href="../IFC-Test-Kit/README.md">test kit</a>.</p>
+</blockquote>
+<h2 id="41-three-ways-to-show-a-number-on-a-building">4.1 Three ways to show a number on a building</h2>
+<p><strong>Colour coding.</strong> Each element is coloured by a value. Numeric values map through a gradient
+(low to high embodied carbon); categorical values map to a palette (analysis category, pass or
+fail). This is the most immediate view and the one every stakeholder understands.</p>
+<p><strong>Text annotation.</strong> The value is shown as text: in a property panel when an element is
+selected, as a label in the 3D scene, or as a tooltip. Property panels are universal; scene
+labels are rare in free viewers and clutter quickly.</p>
+<p><strong>Aggregated views.</strong> Values are summed or averaged by storey, zone, or category and shown as a
+table or chart beside the model, or as a colouring of the containers themselves (storey slabs
+coloured by total carbon). This is the view for decisions: which floor, which system, which
+option.</p>
+<p>The three are not alternatives. A working display shows all three: the model coloured by
+metric, the selected element's values in a panel, and a per-storey table alongside.</p>
+<h2 id="42-where-the-values-come-from">4.2 Where the values come from</h2>
+<p>Section 3 stored values in property sets (Layer 1) and in an external table (Layer 2). The
+display can be driven from either.</p>
+<ul>
+<li><strong>From property sets.</strong> Any viewer that can colour by property works without extra software.
+  This is the path for a screenshot-level demonstration and for handing a file to someone with
+  their own viewer. Its limit is that it only shows what was written into the file.</li>
+<li><strong>From the external table.</strong> The viewer, or a script in front of it, joins the table to the
+  geometry on <code>GlobalId</code> and colours by any column. This shows any metric, any scenario, without
+  rewriting the IFC. It requires a viewer with a scripting or data-binding interface.</li>
+</ul>
+<p>The toolkit's dataflow graph does the second. A three-node graph loads the instances of a model,
+aggregates or joins a value table, and colours the instances:</p>
+<pre><code class="language-json">{
+  &quot;nodes&quot;: [
+    { &quot;id&quot;: &quot;inst&quot;,    &quot;kind&quot;: &quot;view3d.instances&quot; },
+    { &quot;id&quot;: &quot;values&quot;,  &quot;kind&quot;: &quot;csv.read&quot; },
+    { &quot;id&quot;: &quot;colored&quot;, &quot;kind&quot;: &quot;view3d.color&quot; }
+  ],
+  &quot;edges&quot;: [
+    { &quot;from&quot;: &quot;inst.instances&quot;,  &quot;to&quot;: &quot;colored.instances&quot; },
+    { &quot;from&quot;: &quot;values.table&quot;,    &quot;to&quot;: &quot;colored.values&quot; }
+  ],
+  &quot;values&quot;: {
+    &quot;inst&quot;:    { &quot;path&quot;: &quot;{DATA}/duplex.ifc&quot; },
+    &quot;values&quot;:  { &quot;path&quot;: &quot;{DATA}/analytics_dataset_with_levels.csv&quot; },
+    &quot;colored&quot;: { &quot;joinColumn&quot;: &quot;GlobalId&quot;, &quot;valueColumn&quot;: &quot;operational_carbon&quot;, &quot;colorMap&quot;: &quot;viridis&quot; }
+  }
+}
+</code></pre>
+<p>The <code>view3d.color</code> node maps a numeric column through a gradient normalised over its range, or a
+text column through a categorical palette with indices assigned by sorted distinct value, so
+that colours are stable when rows are reordered. Instances with no match in the value table are
+drawn grey, which makes missing data visible rather than silently zero. Changing
+<code>valueColumn</code> to <code>energy_intensity</code> or <code>colorMap</code> to <code>redgreen</code> re-colours the model without
+touching the file.</p>
+<p>Aggregated views come from the same graph: a <code>table.aggregate</code> node grouped by <code>Level</code> feeds a
+<code>chart.bar</code> or a <code>view.table</code> node, and the same aggregate can feed a second <code>view3d.color</code>
+that colours storeys. Figures 2 and 3 show the storey aggregates from the proof of concept as
+a bar chart and as a table, from a two-node graph; Figure 4 shows the property values that
+were written into the model, as a table.</p>
+<p><img alt="Figure 2. Embodied and operational carbon per storey as a bar chart" src="figures/figure-2-storey-carbon-chart.png" /></p>
+<p><em>Figure 2. The storey aggregates of the synthetic dataset, drawn by a <code>chart.bar</code> node fed from
+the storey CSV. The graph on the left is the whole description; the chart is its live output.</em></p>
+<p><img alt="Figure 3. The same aggregates as a table" src="figures/figure-3-storey-carbon-table.png" /></p>
+<p><em>Figure 3. The same node's output in the Table tab. Building, storey, and roof values are the
+ones written into the corresponding IFC entities.</em></p>
+<p><img alt="Figure 4. Property values written into the model" src="figures/figure-4-property-values-table.png" /></p>
+<p><em>Figure 4. The rows given to the byte-exact writer: entity id, set name, property name, IFC
+value type, and value. Each row became one <code>IFCPROPERTYSINGLEVALUE</code>.</em></p>
+<p>The 3D colourings of the Duplex model by these values are Figures 5 to 7. Each is a
+three-node graph: <code>view3d.instances</code> over the enriched IFC, <code>csv.read</code> over the elements
+table, and <code>view3d.color</code> joining them on <code>GlobalId</code>. Of the 218 analysed elements, 216 have
+a mesh in the converted geometry and are coloured; openings and spaces have no row in the
+table and are grey.</p>
+<p><img alt="Figure 5. The Duplex model coloured by operational carbon" src="figures/figure-5-3d-operational-carbon.png" /></p>
+<p><em>Figure 5. <code>duplex-enriched.ifc</code> coloured by operational carbon (synthetic values) through a
+viridis gradient normalised over the column. The graph on the left is the whole description.</em></p>
+<p><img alt="Figure 6. The same model coloured by embodied carbon A1-A3" src="figures/figure-6-3d-embodied-carbon.png" /></p>
+<p><em>Figure 6. Embodied carbon A1-A3 (synthetic). The roof has no embodied-carbon set, so it stays
+grey: the absence that Q7 asks about is visible without a query.</em></p>
+<p><img alt="Figure 7. One colour per analysis category" src="figures/figure-7-3d-category.png" /></p>
+<p><em>Figure 7. The <code>Category</code> column through the categorical palette, nine categories, colours
+assigned by sorted distinct value so they are stable across reorderings.</em></p>
+<p>Verdicts are displayed the same way. Figure 8 is rule DC-W1 evaluated inside the graph by a
+<code>check.rule</code> node over the door widths read from the model's own <code>OverallWidth</code>, then fed to
+<code>view3d.color</code>; Figure 9 is the verdict table behind it.</p>
+<p><img alt="Figure 8. DC-W1 verdicts coloured on the doors" src="figures/figure-8-3d-dc-w1-verdicts.png" /></p>
+<p><em>Figure 8. Rule DC-W1 (leaf width at least 850 mm): 8 pass, 6 fail, coloured on the doors of
+the model. The chain in the preview header is the whole graph, from the two DuckDB views
+through the rule to the colouring.</em></p>
+<p><img alt="Figure 9. The verdict table" src="figures/figure-9-dc-w1-verdict-table.png" /></p>
+<p><em>Figure 9. The <code>check.rule</code> output: one row per door with <code>GlobalId</code>, the width read in
+metres and millimetres, the verdict, and the citation.</em></p>
+<p>Text annotation is the property panel. Figure 13 is a wall picked in the 3D pane: the pane
+asks the host for that entity's property sets and lists them, the enrichment's
+<code>Pset_NRCEmbodiedCarbon</code> and <code>Pset_NRCEnergyPerformance</code> among the authoring tool's own, with
+the run identifier and scenario name the provenance convention requires.</p>
+<p><img alt="Figure 13. A picked wall's property sets" src="figures/figure-13-picked-element-properties.png" /></p>
+<p><em>Figure 13. The picked element's property sets under the 3D view: name, class, <code>GlobalId</code>,
+then one section per set. The analytics sets sit beside the Revit-exported ones because they
+are ordinary property sets in the file.</em></p>
+<p>Aggregates that depend on the spatial structure come from the <code>StoreyOfEntity</code> view added to
+the toolkit's text views for this work; Figure 10 shows the elements per storey it produces,
+including the 103 on Level 1 that the hand-driven session in Section 6.2 undercounted.</p>
+<p><img alt="Figure 10. Elements per storey from the StoreyOfEntity view" src="figures/figure-10-storey-of-element.png" /></p>
+<p><em>Figure 10. Elements per storey, from a relation graph over the <code>StoreyOfEntity</code> view joined to
+the elements table: Level 1 103, Level 2 93, T/FDN 14, Roof 8.</em></p>
+<p>The same pane, graphs, and recipes run on a real building. Figure 11 is the private Snowdon
+Towers sample, 456,598 instances, coloured by category through the <code>view3d.categoryStyle</code>
+recipe node; the walkthrough captures it after the Duplex figures to show that nothing in the
+display path is sized for the small public model.</p>
+<p><img alt="Figure 11. Snowdon Towers coloured by category" src="figures/figure-11-snowdon-categories.png" /></p>
+<p><em>Figure 11. Snowdon Towers (private sample) coloured by category. The graph on the left composes
+eleven recipe nodes; the browser applies the selected branch to the loaded model.</em></p>
+<p>Aggregated views on the same building come from its typed DuckDB export rather than from
+property sets: Figure 12 is the door schedule (142 doors) built from two <code>duck.query</code> nodes, a
+join, and a sort, the graph the dataflow MCP server also builds from tool calls alone in the
+walkthrough's last step.</p>
+<p><img alt="Figure 12. The Snowdon door schedule" src="figures/figure-12-snowdon-door-schedule.png" /></p>
+<p><em>Figure 12. The Snowdon door schedule in the DuckDB workflow page: mark, type, storey, width in
+metres, and why the width is missing when it is.</em></p>
+<h2 id="43-viewer-comparison">4.3 Viewer comparison</h2>
+<p>The test kit defines seven steps: load <code>duplex.ifc</code>, connect the analytics CSV on <code>GlobalId</code>,
+test numeric and category colouring, display values for a selected element, test totals by
+level, load a large model and record responsiveness, and record any preprocessing required.
+The shortlist below is drawn from the inventory; a full row is filled in for each once the kit
+has been run.</p>
+<table>
+<thead>
+<tr>
+<th>Viewer</th>
+<th>Licence</th>
+<th>Platform</th>
+<th>Colour by property</th>
+<th>Colour from external table</th>
+<th>Property panel</th>
+<th>Aggregates</th>
+<th>Scripting</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bonsai (Blender)</td>
+<td>GPL</td>
+<td>Desktop</td>
+<td>Yes</td>
+<td>Yes, via Python</td>
+<td>Yes</td>
+<td>Via Python</td>
+<td>Python, IfcOpenShell</td>
+<td>to test</td>
+</tr>
+<tr>
+<td>xBIM Xplorer</td>
+<td>CDDL</td>
+<td>Windows</td>
+<td>Yes</td>
+<td>Via plug-in</td>
+<td>Yes</td>
+<td>No</td>
+<td>.NET</td>
+<td>to test</td>
+</tr>
+<tr>
+<td>That Open Components</td>
+<td>MIT</td>
+<td>Web</td>
+<td>Yes</td>
+<td>Yes, via JavaScript</td>
+<td>Yes</td>
+<td>Via code</td>
+<td>JavaScript</td>
+<td>to test</td>
+</tr>
+<tr>
+<td>IFClite</td>
+<td>MPL-2.0</td>
+<td>Web</td>
+<td>Yes</td>
+<td>Via code</td>
+<td>Yes</td>
+<td>No</td>
+<td>JavaScript</td>
+<td>to test</td>
+</tr>
+<tr>
+<td>FreeCAD NativeIFC</td>
+<td>LGPL</td>
+<td>Desktop</td>
+<td>Partial</td>
+<td>Via Python</td>
+<td>Yes</td>
+<td>Via Python</td>
+<td>Python</td>
+<td>to test</td>
+</tr>
+<tr>
+<td>BIMvision</td>
+<td>Freeware</td>
+<td>Windows</td>
+<td>Yes</td>
+<td>Plug-in</td>
+<td>Yes</td>
+<td>Limited</td>
+<td>Plug-in API</td>
+<td>to test</td>
+</tr>
+<tr>
+<td>FZKViewer</td>
+<td>Freeware</td>
+<td>Desktop</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes, strong</td>
+<td>No</td>
+<td>No</td>
+<td>to test</td>
+</tr>
+<tr>
+<td>BimOpenFlow viewer (toolkit)</td>
+<td>MIT</td>
+<td>Web</td>
+<td>Yes (Figures 5 to 8)</td>
+<td>Yes, native (Figures 5 to 8)</td>
+<td>Yes, on pick (Figure 13)</td>
+<td>Yes, native (Figures 2, 3, 10)</td>
+<td>Graph and MCP</td>
+<td>tested 2026-09-18: steps 1 to 5 of the kit pass; step 6 with the Snowdon model, 456,598 instances (Figure 11); step 7: IFC is converted to BOS once by the host and cached</td>
+</tr>
+</tbody>
+</table>
+<p>Speckle, listed in the statement of work, is a platform rather than a viewer; its web viewer
+supports colouring by property and its connectors support custom data, and it should be
+included in the test run.</p>
+<h2 id="44-recommendation-in-brief">4.4 Recommendation in brief</h2>
+<ol>
+<li>Use colour coding driven by a value table joined on <code>GlobalId</code>, with a gradient for numeric
+   metrics and a categorical palette for classes and verdicts. Draw unmatched elements grey.</li>
+<li>Show the selected element's Layer 1 property sets in a standard property panel; do not build
+   custom scene labels for the proof of concept.</li>
+<li>Provide an aggregated table or bar chart per storey and per category beside the model, from
+   the same table that drives the colouring.</li>
+<li>For a screenshot-level deliverable, write Layer 1 property sets and use any viewer that
+   colours by property. For an interactive deliverable, use the toolkit's dataflow graph and
+   web viewer, which do the join, the colouring, and the aggregation from one description.</li>
+<li>Choose Bonsai as the reference desktop viewer for verification, because it exposes the full
+   IFC through IfcOpenShell and can reproduce the join in a few lines of Python.</li>
+</ol>
+<h1 id="5-the-llm-and-agent-layer">5. The LLM and agent layer</h1>
+<p>This section answers the third objective: how to build a layer in which a person asks a
+question in plain language and receives a correct answer about an enriched model. The design
+follows from one observation about what LLMs are and are not good at.</p>
+<h2 id="51-why-not-give-the-model-the-file">5.1 Why not give the model the file</h2>
+<p>An IFC file is a serialisation of an object graph. A question such as "what is the total
+operational carbon on Level 2" requires finding the storey entity, following the containment
+relationship to its elements, finding each element's property set relationship, finding the
+set, finding the property, reading the value, and summing. In a 38,898-entity file the
+relevant entities are scattered and the file is far larger than any model's context window.
+Even where a file fits, a language model reading STEP text does arithmetic by pattern matching
+and produces plausible rather than correct totals.</p>
+<p>The alternative is to give the model tools. A tool is a function with a typed signature that
+the model may call; the runtime executes it and returns the result. The model then reasons over
+results that are small, structured, and correct. This is the design of every practical IFC MCP
+server surveyed in <a href="../mcp-ifc.md">mcp-ifc.md</a>, and the design used here. The difference lies
+in what the tools are.</p>
+<h2 id="52-design-principles">5.2 Design principles</h2>
+<p>Four principles were applied. Each was learned from running varied questions against the
+implementation and reading the transcripts; the toolkit's
+<a href="https://github.com/ara3d/bim-open-toolkit/blob/71790a7/docs/bim-flow-mcp-demo.md">MCP demo notes</a>
+record the failures that motivated them.</p>
+<p><strong>Few, typed, read-only tools.</strong> A server that exposes the whole IFC API as 200 tools gives the
+model too many ways to be wrong. The implementation exposes 29 tools grouped by question shape
+(Appendix C). Every SQL tool accepts one read-only statement; <code>DROP</code>, <code>INSERT</code>, and statement
+chaining are rejected, and the rejection is tested.</p>
+<p><strong>Columnar copy, not the object graph.</strong> The IFC file is converted once per session to BIM Open
+Schema and loaded into DuckDB. Questions then become SQL over tables with text views, which a
+model writes reliably. The conversion is the expensive step and happens once, not once per
+question.</p>
+<p><strong>Questions run the other way.</strong> The per-element tools ("what does element N carry") are the
+wrong shape for almost every real question ("which elements are load bearing", "<code>Height</code> for
+all the windows"). An inverted parameter index, built once per session, answers those in one
+call. Without it the model made one call per element.</p>
+<p><strong>Answers carry their derivation.</strong> Every list result reports its unpaged total, so the model
+can tell a complete answer from a truncated one. In the dataflow surface, a question becomes a
+graph, the graph is evaluated, and a run record pins the graph hash and every input by content
+hash. A number comes with a way to recompute it.</p>
+<h2 id="53-the-tool-surface">5.3 The tool surface</h2>
+<p>The IFC MCP server has three groups of tools. The data tools answer questions about entities,
+attributes, properties, quantities, relations, and the spatial tree directly from the parsed
+file, without loading geometry. The geometry tools answer questions about meshes, bounds, and
+volumes. The analytics tools convert the model to BOS, list the tables, run read-only SQL, and
+export results.</p>
+<p>A representative exchange, with the model's tool calls shown as they appear in a transcript:</p>
+<pre><code class="language-text">User:  Which storeys have the most operational carbon, and what is the total for each?
+
+Agent: ifc_to_bos { path: &quot;duplex.ifc&quot; }
+       -&gt; { tables: 9, entities: 38898 }
+
+Agent: ifc_sql { sql: &quot;SELECT p.Value AS storey ... &quot; }
+       (reads the ContainedIn relations and the Pset_NRCOperationalCarbon values)
+
+Agent: ifc_sql { sql:
+         &quot;SELECT storey, round(sum(oc), 1) AS total_kgCO2e_per_year, count(*) AS elements
+            FROM element_carbon GROUP BY storey ORDER BY total DESC&quot; }
+       -&gt; { total: 2, rows: [[&quot;Level 2&quot;, 12406.3, 141], [&quot;Level 1&quot;, 11874.9, 127]] }
+
+Agent: Level 2 has the higher total at 12,406 kgCO2e per year across 141 elements;
+       Level 1 has 11,875 across 127. Values come from Pset_NRCOperationalCarbon
+       on each element, run id run-2026-07-14-01.
+</code></pre>
+<p>The numbers in this exchange are illustrative of the shape of an answer, not measured results;
+Section 6.2 will replace them with the recorded run.</p>
+<h2 id="54-the-dataflow-surface">5.4 The dataflow surface</h2>
+<p>The second surface is the BimOpenFlow MCP server. Its tools are the same operations that back
+the web editor: <code>describeDatabase</code>, <code>getNodeCatalog</code>, <code>editGraph</code>, <code>evaluate</code>, <code>getResult</code>,
+and <code>createRun</code>. A question becomes a graph of small nodes rather than one SQL string, and the
+graph persists in a store where a person can open it, inspect each intermediate table, and
+edit it.</p>
+<p>This matters for three reasons. The person who asked can see how the answer was built. The
+next question ("now only the doors") is an edit to the same graph. And the graph that colours
+the model (Section 4.2) and the graph that answers the question are the same kind of object,
+so "colour Level 2 by the values you just summed" is one more node.</p>
+<p>Nine tactics made this work on small and large models alike. The four that matter most:</p>
+<ol>
+<li>A schema summary the model can afford to read, with companion columns folded and empty tables
+   given only a name and count.</li>
+<li>A node guide in the system prompt: the expression language, the aggregate syntax, and the
+   fact that <code>sql.query</code> exists for anything the table nodes cannot express.</li>
+<li>One call to build a graph. Applying a list of edits at once and saving once cut input tokens
+   per request from 2 to 4 million to 100 to 300 thousand.</li>
+<li>A check by the host after the model says it is done: every node evaluated, an <code>answer</code> node
+   present, rows in its table. An empty answer is reported back with the row count of every
+   upstream node, and the model gets two more turns to fix it or to say honestly why the answer
+   is empty.</li>
+</ol>
+<p>On the toolkit's Snowdon test database, twelve requests over rooms, roofs, storeys, doors, and
+lineage produced ten correct graphs, one honest answer without a graph, and one correctly empty
+graph with an explanation, on a small model, and eleven correct graphs and one honest answer on
+a mid-sized one. Where a hand-built graph existed for the same question, the counts matched.</p>
+<h2 id="55-compliance-as-a-query">5.5 Compliance as a query</h2>
+<p>A code-compliance rule is a query with a verdict column. The compliance node pack expresses this
+directly. A <code>check.rule</code> node takes a table of element rows and a Boolean expression, and
+appends four columns: <code>verdict</code>, <code>checkId</code>, <code>checkTitle</code>, and <code>citation</code>. A true expression is
+<code>Pass</code>; false is <code>Fail</code> (or <code>NeedsReview</code> when a second expression says so); a null result,
+meaning the fact needed was absent, is <code>InfoNotAvailable</code>. Absence is reported, never skipped.</p>
+<pre><code class="language-csharp">verdicts[i] = expr.Eval(lookup) switch
+{
+    null =&gt; Verdict.InfoNotAvailable,
+    BooleanScalar { Value: true } =&gt; Verdict.Pass,
+    _ =&gt; review?.Eval(lookup) is BooleanScalar { Value: true } ? Verdict.NeedsReview : Verdict.Fail,
+};
+</code></pre>
+<p>The verdict table is an ordinary table. It can be coloured onto the model, summed per storey,
+exported, or written back into the IFC as a property set. Section 6.3 shows a checker built on
+the same four-verdict idea running over real doors.</p>
+<h2 id="56-recommendation-in-brief">5.6 Recommendation in brief</h2>
+<ol>
+<li>Put the LLM behind a small, typed, read-only tool surface. Do not give it the file.</li>
+<li>Convert the IFC once to a columnar form and answer questions with SQL over text views.</li>
+<li>Provide inverted parameter tools so that "which elements have X" is one call.</li>
+<li>Make every answer carry its derivation: totals on lists, graphs and run records for
+   dataflow questions.</li>
+<li>Treat compliance checks as queries with a verdict column, and require that missing data
+   produce an explicit verdict rather than a silent pass.</li>
+<li>Use MCP so that the same server serves a chat client, a custom agent, and the web editor.</li>
+</ol>
+<h1 id="6-proof-of-concept-and-results">6. Proof of concept and results</h1>
+<p>The proof of concept has two case studies on the same public model. Case study A is the
+statement of work's acceptance criterion: natural-language questions answered against an IFC
+model enriched with analytics. Case study B applies the same storage and query machinery to
+code compliance, and is the study that has been executed and recorded. Both are on the
+buildingSMART Duplex Apartment model, <code>duplex.ifc</code>, 38,898 STEP entities.</p>
+<blockquote>
+<p><strong>Status.</strong> Case study B (6.3) was executed on 2026-08-04 and independently re-run on
+2026-08-05. Every claim in it is backed by a test or a commit pinned in
+<a href="../door-clearance-demo.md">door-clearance-demo.md</a>. Case study A (6.2) was executed on
+2026-09-17 with synthetic analytics; its scripts, data, and transcript are in
+<a href="../poc/README.md">poc/</a>, and what it did not cover is listed in the
+<a href="poc-gap-report.md">gap report</a>.</p>
+</blockquote>
+<h2 id="61-model-data-and-toolchain">6.1 Model, data, and toolchain</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model</td>
+<td><code>duplex.ifc</code>, buildingSMART Duplex Apartment, IFC2X3, 38,898 entities, 2 storeys</td>
+</tr>
+<tr>
+<td>Elements with analytics</td>
+<td>268, keyed by <code>GlobalId</code>, in <code>analytics_dataset_with_levels.csv</code></td>
+</tr>
+<tr>
+<td>Analytics columns</td>
+<td><code>operational_carbon</code>, <code>energy_intensity</code>, <code>category</code>, <code>Level</code></td>
+</tr>
+<tr>
+<td>Doors</td>
+<td>14 (6 on Level 1, 8 on Level 2)</td>
+</tr>
+<tr>
+<td>Furnishing elements</td>
+<td>61, treated as potential obstacles</td>
+</tr>
+<tr>
+<td>Toolchain</td>
+<td>BIM Open Toolkit at commit <code>71790a7</code>; .NET 8; DuckDB</td>
+</tr>
+</tbody>
+</table>
+<p>The toolchain itself is exercised end to end by automated tests before either case study runs.
+The IFC-to-BOS conversion, table listing, paged SQL, read-only enforcement, text views,
+export, and a cross-check that the storey count from SQL equals the storey count from the
+entity tools are all asserted against the FZK-Haus model, and the server is run as a live
+subprocess over stdio. <a href="../bos-validation-evidence.md">bos-validation-evidence.md</a> lists the
+tests and commits.</p>
+<h2 id="62-case-study-a-natural-language-questions-over-an-enriched-model">6.2 Case study A: natural-language questions over an enriched model</h2>
+<p><strong>Executed 2026-09-17.</strong> The analytics are synthetic (Section 7.1): each physical element
+received a type-based embodied carbon value with a deterministic jitter, and the test kit's
+operational carbon and energy intensity columns were reused. The roof deliberately received no
+embodied-carbon set.</p>
+<p><strong>Procedure as run.</strong></p>
+<ol>
+<li>A generator script produced Layer 1 values for the 218 physical elements (openings excluded),
+   storey and building aggregates, a Layer 2 long-format table, and a provenance set for the
+   project, following Appendix A.</li>
+<li>A small .NET program wrote the values into a copy of the model with the byte-exact writer:
+   664 property sets, 2,438 typed property values (<code>IFCREAL</code>, <code>IFCLABEL</code>, <code>IFCIDENTIFIER</code>,
+   <code>IFCTEXT</code>), on 218 elements, 4 storeys, the building, and the project. The entity diff
+   listed exactly the 3,766 added entities, removing them restored the source byte for byte,
+   and a second run produced identical bytes.</li>
+<li>The expected answer to each question was computed from the CSV alone, without the IFC file
+   or the server.</li>
+<li>The enriched model was opened through the IFC MCP server over HTTP. The author, acting as
+   the agent, asked each question by choosing tool calls, and a helper script recorded every
+   call, its arguments, and its result verbatim before the answer was written.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Source entities</td>
+<td>38,898</td>
+</tr>
+<tr>
+<td>Enriched entities</td>
+<td>42,664</td>
+</tr>
+<tr>
+<td>Property sets written</td>
+<td>664</td>
+</tr>
+<tr>
+<td>Property values written</td>
+<td>2,438</td>
+</tr>
+<tr>
+<td>Entities added</td>
+<td>3,766</td>
+</tr>
+<tr>
+<td>Diff exact, reversible, deterministic</td>
+<td>yes, yes, yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Results.</strong> All eight questions were answered from the file through the read-only SQL tool
+over the BOS text views. Seven returned values matched the expectation exactly; Q2 did not,
+for a reason the transcript makes visible.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Level</th>
+<th>Question</th>
+<th>Expected</th>
+<th>Returned</th>
+<th>Calls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q1</td>
+<td>Building</td>
+<td>Total operational carbon</td>
+<td>37,196.2 kgCO2e/yr</td>
+<td>37,196.2, from both the building aggregate and the sum of 218 elements</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>Storey</td>
+<td>Higher mean energy intensity, Level 1 or 2</td>
+<td>L2, marginally: L1 40.50, L2 40.56 over 103 and 93 elements</td>
+<td><strong>L1</strong>: 41.72 against 40.56, over 93 elements each; disagrees</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>Component</td>
+<td>Five highest operational carbon</td>
+<td>walls 412.0, 410.8; cabinet 402.0; walls 399.7, 398.6</td>
+<td>same five, same order</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Q4</td>
+<td>Component</td>
+<td>Operational carbon of door <code>M_Single-Flush:0762 x 2032mm</code></td>
+<td>54.0 (first of four)</td>
+<td>all four doors listed, 54.0 for the first; ambiguity stated</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Q5</td>
+<td>Category</td>
+<td>Operational carbon per class</td>
+<td>walls 17,547.4; slabs 5,816.9; furnishing 5,766.3</td>
+<td>same, all 14 classes</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Q6</td>
+<td>Provenance</td>
+<td>Which run, when</td>
+<td>run-2026-09-17-01, 2026-09-17</td>
+<td>same, plus tool, method, dataset URI; 664 sets carry the run id</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Q7</td>
+<td>Absence</td>
+<td>Embodied carbon of the roof</td>
+<td>not available</td>
+<td>not available, with the two sets the roof does carry</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Q8</td>
+<td>Storey</td>
+<td>Embodied carbon per storey</td>
+<td>L1 49,451.2; L2 48,696.8; T/FDN 11,761.3; Roof 5,821.0</td>
+<td>same</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>Two observations from the transcript matter more than the matches.</p>
+<ul>
+<li><strong>Q2 needed a second query and still came out wrong.</strong> The converted model's <code>ContainedIn</code>
+  relation points at the room (Kitchen, Bedroom 1) for elements inside a room and at the
+  storey for the rest. The first query grouped by the direct container and produced a list of
+  rooms. The agent said so in the transcript and wrote a second query that walks room to
+  storey. That query reaches 93 of the 103 Level 1 elements, because ten stair, railing, and
+  member parts are aggregated into assemblies rather than contained. The answer stated the
+  caveat, but the conclusion it drew (Level 1 higher) is the opposite of the expectation over
+  all elements (Level 2 higher by 0.06). The margin is tiny and the synthetic data makes the
+  question artificial, but the lesson is real: a per-storey mean derived by the agent from
+  relations is only as complete as the relation walk, and the storey aggregates written in
+  Layer 1 (Q8) exist precisely so that the answer does not depend on it.</li>
+<li><strong>Q4 is ambiguous by name.</strong> Four doors share the family name. The agent returned all four
+  with their STEP ids and <code>GlobalId</code>s rather than choosing one silently.</li>
+</ul>
+<p>The full transcript, including the wrong first attempt at Q2, is in
+<a href="../poc/results/transcript.md">poc/results/transcript.md</a>.</p>
+<p><strong>Mechanical replay.</strong> The toolkit's <code>scripts/demo-ifc-mcp.mjs</code> replays the session's SQL for
+Q1, Q5, Q7, and Q8 over the IFC MCP server's stdio transport, the transport an MCP client
+uses, and checks each result against <code>expected_answers.json</code>. On 2026-09-18 all four matched;
+the transcript is <a href="../poc/results/transcript-mcp-replay.md">poc/results/transcript-mcp-replay.md</a>.
+This proves the connection and the tool surface end to end without a language model.</p>
+<p><strong>Unattended run, 2026-09-18.</strong> The same eight questions, verbatim, were put to <code>gpt-5</code>
+through the toolkit's <code>bimopenmcp-ifc-ask</code> runner: one fresh conversation per question, the
+IFC MCP server in process, no human in the loop. The system prompt names the file, the views
+and their columns, and the rules (every number from a tool result; "not available" is a valid
+answer). Totals: 35 tool calls, 221,968 input and 30,144 output tokens, toolkit commit
+<code>66df499</code>. The transcript with every call is
+<a href="../poc/results/transcript-unattended.md">poc/results/transcript-unattended.md</a>; the per-question
+record is <code>results-unattended.json</code>.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Expected</th>
+<th>Returned by gpt-5</th>
+<th>Calls</th>
+<th>Match</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q1</td>
+<td>37,196.2</td>
+<td>37,196.2, from the building's own aggregate</td>
+<td>3</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>L2, marginally: 40.50 against 40.56</td>
+<td>Level 2, 40.499 against 40.557, grouped through <code>StoreyOfEntity</code></td>
+<td>4</td>
+<td>yes, where the hand-driven session did not</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>walls 412.0, 410.8; cabinet 402.0; walls 399.7, 398.6</td>
+<td>the building (37,196.2) and the four storeys: the query ranked every entity carrying the property, containers included</td>
+<td>3</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Q4</td>
+<td>54.0, first of four</td>
+<td>all four doors with STEP ids, 54.0 for #8066, and a question back about which one</td>
+<td>4</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Q5</td>
+<td>per analytics category: Wall 22,854.1, Floor 5,593.5, ...</td>
+<td>per IFC class: IFCWALLSTANDARDCASE 17,547.4, IFCSLAB 5,816.9, ... over 16 rows that include the building and storey aggregates</td>
+<td>3</td>
+<td>partly: the recorded session's grouping, with container rows not excluded</td>
+</tr>
+<tr>
+<td>Q6</td>
+<td>run-2026-09-17-01, 2026-09-17</td>
+<td>same, from <code>Pset_NRCAnalyticsProvenance</code></td>
+<td>4</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Q7</td>
+<td>not available</td>
+<td>1,838.5 kgCO2e A1-A3 from the roof's <code>IFCSLAB</code> member, stating that the <code>IFCROOF</code> itself carries none</td>
+<td>11</td>
+<td>no, and informative</td>
+</tr>
+<tr>
+<td>Q8</td>
+<td>L1 49,451.2; L2 48,696.8; T/FDN 11,761.3; Roof 5,821.0</td>
+<td>exactly double each: 98,902.4; 97,393.6; 23,522.6; 11,642.0</td>
+<td>3</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
+<p>Four matched, one partly, three did not, and the three misses share one cause that matters
+more for the storage recommendation than for the agent. The Layer 1 aggregates written on the
+storey and building entities carry the same property set and property name as the element
+values. An agent that sums or ranks "everything with <code>OperationalCarbon_kgCO2e_per_year</code>" then
+counts the building and the storeys as elements (Q3, Q5) and, when it groups elements by storey
+through <code>StoreyOfEntity</code>, adds the storey's own aggregate to its elements' sum and doubles every
+total (Q8). The hand-driven session avoided this by excluding the container classes in each
+query, which is the kind of knowledge a prompt can carry but a file should not need. Appendix
+A's recommendation should therefore give the aggregate sets their own names (for example
+<code>Pset_NRCStoreySummary</code>) or their own property names, so that a sum over the element property
+cannot include an aggregate of itself.</p>
+<p>Q7 is a different lesson. The generator wrote no set on the <code>IFCROOF</code>, but the roof is an
+assembly whose <code>IFCSLAB</code> member received values, and the agent found them, reported them, and
+said which entity carries them. The expected answer "not available" was the author's, and the
+agent's answer is the better one; the question should be read as being about the roof
+assembly, and the absence test in the question list should use an element with no analysed
+descendants.</p>
+<p>Q2 is the mirror image of the recorded session: the unattended agent used the storey view
+the toolkit gained after that session and got the expected ordering over all elements.</p>
+<h2 id="63-case-study-b-door-clearance-from-code-text-to-verdicts">6.3 Case study B: door clearance, from code text to verdicts</h2>
+<p><strong>Executed 2026-08-04.</strong> This study shows a building-code provision expressed as a
+machine-readable rule, executed by a checker against the model, with verdicts stored per element
+and a human override written back into the IFC. Figure 1 shows the three stages and the
+plan-view geometry of the zone rule.</p>
+<p><img alt="Figure 1. Code to rule to checker: the door-clearance pipeline over duplex.ifc" src="figures/figure-1-door-clearance-pipeline.svg" /></p>
+<p><em>Figure 1. The three stages of case study B: a code provision, its JSON rule, and the checker's
+verdict records, with the plan-view zone test of rule DC-Z1 and the verdict totals.</em></p>
+<p><strong>Rules.</strong> Four provisions modelled on NBC 2020 accessible-door requirements. The citations are
+labelled illustrative in the rule file; they are not legal text.</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Kind</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DC-W1</td>
+<td>property threshold</td>
+<td><code>OverallWidth</code> at least 850 mm</td>
+</tr>
+<tr>
+<td>DC-W2</td>
+<td>property threshold</td>
+<td><code>Pset_DoorCommon.ClearWidth</code> at least 850 mm</td>
+</tr>
+<tr>
+<td>DC-M1</td>
+<td>measured versus declared</td>
+<td>Width encoded in the type name agrees with <code>OverallWidth</code> within 25 mm</td>
+</tr>
+<tr>
+<td>DC-Z1</td>
+<td>zone unobstructed</td>
+<td>Manoeuvring zone in front of the door, depth equal to door width, free of furnishing elements; applies to storey "Level 1" only</td>
+</tr>
+</tbody>
+</table>
+<p>Each rule in the JSON file has an id, a citation, an applicability filter (entity type and
+optional storey), requirement parameters, and a sentence of verdict semantics. Appendix B gives
+the schema and one full rule.</p>
+<p><strong>Checker.</strong> A small engine loads the rule file, evaluates every rule against every door, and
+emits one record per (door, rule) with the verdict and the evidence that produced it. Output is
+sorted by (<code>GlobalId</code>, rule id) so that it does not depend on file order.</p>
+<pre><code class="language-csharp">public static IReadOnlyList&lt;VerdictRecord&gt; Evaluate(ModelFacts facts, RuleSet rules)
+    =&gt; facts.Doors
+        .SelectMany(door =&gt; rules.Rules.Select(rule =&gt; Evaluate(door, rule, facts)))
+        .OrderBy(v =&gt; v.GlobalId, StringComparer.Ordinal)
+        .ThenBy(v =&gt; v.RuleId, StringComparer.Ordinal)
+        .ToList();
+</code></pre>
+<p>A property-threshold rule returns <code>Inconclusive</code> when the property is absent; it does not
+guess. The zone rule composes the door's full placement chain (rotation included) to build an
+axis-aligned zone box and tests each furnishing element's placement origin against it.</p>
+<p><strong>Ground truth.</strong> Before the checker was written, a separate agent in a separate commit
+extracted every door's STEP id, <code>GlobalId</code>, name-encoded width and height (Revit family names
+such as <code>M_Single-Flush:0762 x 2032mm</code>), declared <code>OverallWidth</code> and <code>OverallHeight</code>, and
+containing storey. Findings: all 14 doors carry both attributes; name-encoded and declared
+dimensions agree to the millimetre on every door; widths are 2 at 1250 mm, 6 at 864 mm, 4 at
+762 mm, 2 at 813 mm. The ground truth therefore predicted, for DC-W1, 8 pass and 6 fail, with
+the 864 mm doors passing by 14 mm and the 813 mm doors failing by 37 mm.</p>
+<p><strong>Results.</strong> 56 verdicts, 14 doors by 4 rules.</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Pass</th>
+<th>Fail</th>
+<th>Not applicable</th>
+<th>Inconclusive</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DC-W1 width</td>
+<td>8</td>
+<td>6</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>DC-W2 clear width pset</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>14</td>
+</tr>
+<tr>
+<td>DC-M1 measured vs declared</td>
+<td>14</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>DC-Z1 zone (Level 1 only)</td>
+<td>4</td>
+<td>2</td>
+<td>8</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Total</td>
+<td>26</td>
+<td>8</td>
+<td>8</td>
+<td>14</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>DC-W1 matches ground truth exactly, door by door.</li>
+<li>All four verdict categories occur, each for a real reason. DC-W2 is inconclusive on every
+  door because the model's authors never wrote <code>Pset_DoorCommon.ClearWidth</code>. DC-Z1's storey
+  filter marks the 8 Level 2 doors not applicable.</li>
+<li>DC-Z1 found two Level 1 doors with a furnishing element inside the manoeuvring zone. This
+  was not staged; the model contains the condition.</li>
+<li>Every record carries the <code>GlobalId</code>, the rule id, the citation, and the evidence values: the
+  widths read, the zone bounds, the obstructing element.</li>
+</ul>
+<p><strong>Determinism.</strong> The evaluation runs twice from scratch in the test suite and the SHA-256 of the
+verdict CSV is asserted identical. An independent re-run in a fresh process the next day gave
+the same hash. Timestamps are kept in a separate run log, never in the hashed output.</p>
+<p><strong>Override.</strong> A failing 762 mm door receives an <code>Ara3D_Compliance</code> property set with
+<code>Verdict</code>, <code>OverrideVerdict</code>, <code>OverrideReason</code>, and <code>ReviewedBy</code>, appended to a copy of the
+model with the byte-exact writer. The test asserts three things: the entity diff lists exactly
+the added entities and nothing else; removing them restores the source file byte for byte; and
+the source model is never modified.</p>
+<pre><code class="language-csharp">File.WriteAllBytes(overriddenPath, IfcPatcher.Append(original, builder.Lines));
+
+using var overridden = IfcSourceFile.Load(overriddenPath);
+var diff = IfcDiff.Compare(original, overridden);
+Assert.That(diff.Added, Is.EqualTo(builder.Ids));
+Assert.That(diff.Deleted, Is.Empty);
+Assert.That(diff.Changed, Is.Empty);
+
+var restored = IfcPatcher.Remove(overridden, diff.Added);
+Assert.That(restored, Is.EqualTo(File.ReadAllBytes(TestPaths.DuplexIfc)));
+</code></pre>
+<p><strong>Test run.</strong> Seven tests, all passing, in about four seconds on Windows 11 and .NET 8.0.28,
+verified twice: once by the implementing agent and once in a fresh session.</p>
+<h2 id="64-what-the-two-studies-show-together">6.4 What the two studies show together</h2>
+<p>Case study B exercises every part of the recommended architecture except the language model:
+values read from the file, a rule expressed as data, verdicts keyed by <code>GlobalId</code> with evidence,
+results written back byte-exactly, and reproducibility proven by hash. Case study A adds the
+language model in front of the same tools. The studies are deliberately built on one model, one
+writer, and one table shape, so that a verdict and a carbon value are the same kind of thing:
+a row keyed by <code>GlobalId</code> that can be coloured, summed, asked about, and written back.</p>
+<h1 id="7-limitations">7. Limitations</h1>
+<p>The limitations are stated here in one place so that the results in Section 6 are not read as
+more than they are.</p>
+<h2 id="71-of-the-proof-of-concept">7.1 Of the proof of concept</h2>
+<p><strong>One public model.</strong> Both case studies use the Duplex Apartment. It is small (two storeys,
+14 doors) and its authoring conventions (Revit family names that encode dimensions) helped the
+ground-truth step. NRC's own models will not necessarily encode dimensions in names, and the
+measured-versus-declared rule (DC-M1) will need a geometric measurement in its place.</p>
+<p><strong>One model, one run.</strong> Case study A was answered twice: by the author choosing tool calls
+by hand, and by one unattended run of one language model (<code>gpt-5</code>) on 2026-09-18. Four of eight
+matched, and the three misses trace to the aggregate naming in Appendix A rather than to the
+tool surface (Section 6.2). One run is not a measurement of reliability; repeated runs, other
+models, and the renamed aggregate sets are needed before an accuracy figure can be quoted.</p>
+<p><strong>Synthetic analytics.</strong> The carbon and energy values were generated from per-type base values
+with a hash jitter, and the operational columns come from a dataset made for viewer testing.
+They have the right shape, units, and join key but are not from an analysis tool. Provenance
+fields will carry real run identifiers only once NRC supplies a dataset.</p>
+<p><strong>Storey resolution through relations was incomplete in the recorded session.</strong> In the
+converted model, elements inside assemblies (stair flights, railings, members) are reached by
+<code>MemberOf</code>, not <code>ContainedIn</code>, and the Q2 query missed ten of them, which flipped a marginal
+comparison. The toolkit now exposes a <code>StoreyOfEntity</code> view that walks containment,
+aggregation, and membership (Figure 10 reaches all 103 Level 1 elements), but the recorded
+session predates it and is kept as recorded. Storey-level answers should still come from the
+written aggregates where they exist.</p>
+<p><strong>Leaf width, not clear width.</strong> Rule DC-W1 tests <code>OverallWidth</code>, which is the door leaf. The
+code's clear width subtracts frame, stops, and hinge-side projection; under a strict reading
+the six 864 mm doors could fail. DC-W2 is the honest placeholder: it demands an authored
+<code>ClearWidth</code> and returns inconclusive when absent.</p>
+<p><strong>Placement-level geometry.</strong> The zone rule DC-Z1 composes exact placement transforms but tests
+furnishing placement origins against an axis-aligned box rather than meshing every obstacle. The
+mesh path (<code>ifc_volume</code>, <code>ifc_bounds</code>) exists in the toolkit but was not wired into the checker.</p>
+<p><strong>Illustrative citations.</strong> The rule file's NBC references convey the shape of a real provision.
+They are not reproductions of code text and have not been reviewed by a code authority.</p>
+<h2 id="72-of-the-storage-recommendation">7.2 Of the storage recommendation</h2>
+<p><strong>Custom property sets are a convention, not a standard.</strong> Layer 1 works because the names are
+agreed. Two organisations that both write <code>Pset_NRCEmbodiedCarbon</code> with different lifecycle
+stages will produce files that look compatible and are not. The metric dictionary (Layer 3)
+and an IDS specification are the mitigations, and neither is implemented yet.</p>
+<p><strong>Typed values in write-back.</strong> The dataflow node <code>sink.writePsets</code> wrote every value as
+<code>IFCTEXT</code> when the proof of concept ran, which is why the enrichment used the library directly.
+The node now takes an optional <code>valueType</code> column (<code>Real</code>, <code>Integer</code>, <code>Boolean</code>, <code>Label</code>,
+<code>Identifier</code>, <code>Text</code>) and the seeded graph <code>nrc-enrich-run</code> writes <code>psets_to_write.csv</code> with
+its types; the enrichment reported in Section 6.2 was not rerun through it.</p>
+<p><strong>IFC units.</strong> The recommendation puts units in property names rather than relying on
+<code>IfcUnitAssignment</code>. This is robust but redundant, and a reviewer aligned with the IFC unit
+model may object.</p>
+<p><strong>External references can break.</strong> Layer 2 depends on the referenced file being delivered with
+the IFC. The checksum in the reference detects substitution but not absence.</p>
+<h2 id="73-of-the-query-layer">7.3 Of the query layer</h2>
+<p><strong>No measured accuracy on the target task.</strong> The accuracy figures in Section 5.4 are from the
+toolkit's own test database, not from carbon and energy questions over an enriched IFC. They
+show that the approach works; they are not a measurement of this project's acceptance
+criterion.</p>
+<p><strong>Ambiguity is not always surfaced.</strong> On questions with no single right reading ("the biggest
+rooms" when area is null for some), the models tested chose an interpretation rather than
+asking. The host's post-evaluation check catches empty answers, not wrong interpretations.</p>
+<p><strong>Windows only.</strong> The IFC loader, and therefore the MCP server and the write-back path, target
+<code>net8.0-windows</code>. The engine and schema libraries are cross-platform, but the full proof of
+concept cannot yet run on Linux or macOS.</p>
+<p><strong>Local, single user.</strong> The host is a local process with no authentication and one request at
+a time. This is appropriate for a proof of concept and not for a shared service.</p>
+<h2 id="74-of-the-display-recommendation">7.4 Of the display recommendation</h2>
+<p>The viewer comparison in Section 4.3 has one row from the test kit, the toolkit's own viewer.
+For the other viewers the recommendation rests on documented capabilities, not on the kit's
+results, and no screenshots have been captured. The toolkit row is also the only one whose
+"colour from an external table" is a data-flow join rather than a script, which favours it on
+that column by construction.</p>
+<h1 id="8-future-directions">8. Future directions</h1>
+<p>The statement of work asks for complementary architectural patterns, including knowledge graphs
+and world-model substrates, as possible extensions beyond file-based IFC exchange. This section
+covers those and the nearer-term items that the proof of concept left open.</p>
+<h2 id="81-near-term-closing-the-gaps-in-this-paper">8.1 Near term: closing the gaps in this paper</h2>
+<ol>
+<li><strong>Run case study A</strong> with the question list in Section 6.2 and record expected versus
+   observed per question.</li>
+<li><strong>Run the viewer test kit</strong> through the shortlist in Section 4.3 and capture screenshots.</li>
+<li><strong>Repeat both case studies on an NRC model</strong> with a real analytics dataset once supplied.</li>
+<li><strong>Pass value types through <code>sink.writePsets</code></strong> so that numeric analytics written from the
+   dataflow graph are <code>IFCREAL</code>, not text.</li>
+<li><strong>Mesh-accurate clearance.</strong> Wire the existing volume and bounds tools into the zone rule so
+   that obstacles are tested by geometry, not by placement origin.</li>
+</ol>
+<h2 id="82-ids-as-the-rule-format">8.2 IDS as the rule format</h2>
+<p>The door demonstration uses a purpose-built JSON rule schema because it needed requirement kinds
+(zone clash, measured versus declared) that IDS 1.0 does not express. But the property-threshold
+rules DC-W1 and DC-W2 are exactly what IDS was designed for: an applicability (<code>IFCDOOR</code>) and a
+requirement (a property with a minimum value). Two steps follow.</p>
+<ul>
+<li>Express Layer 1 of the storage recommendation as an IDS specification: every element of the
+  covered classes must carry the NRC property sets with values of the right type. Validate
+  delivered models against it with an existing IDS checker before any analytics query is run.</li>
+<li>Map the property-threshold rule kind to IDS, so that a rule file can carry IDS requirements
+  alongside the geometric kinds IDS cannot express, and so that the checker's verdicts and an
+  IDS validator's report agree on the same door.</li>
+</ul>
+<h2 id="83-knowledge-graphs-and-linked-building-data">8.3 Knowledge graphs and linked building data</h2>
+<p>The columnar tables in this paper are a graph flattened into edge lists: entities, and a
+relations table with a closed vocabulary. Converting them to RDF using BOT and the IFC-LBD
+mappings is mechanical, and the analytics rows in Layer 2 become triples with the metric
+dictionary (Layer 3) as their predicate vocabulary.</p>
+<p>What this buys is joins outside the building: to product EPD databases, to a climate zone, to
+an organisation's asset register, to the regulation text itself. What it costs is tooling. SPARQL
+endpoints and reasoners are less familiar to the client's users than DuckDB and Parquet, and an
+LLM writes SQL more reliably than SPARQL today. The recommendation is to keep the columnar form
+as the working representation and to publish an RDF export from it, rather than to make RDF the
+store.</p>
+<h2 id="84-world-model-substrates">8.4 World-model substrates</h2>
+<p>"World model" means two nearly opposite things to two audiences. To machine-learning
+researchers it is a learned, predictive, probabilistic model of an environment. To BIM
+practitioners it is an authored, explicit, complete database of the built asset that transcends
+any one authoring tool. The toolkit's design note on
+<a href="https://github.com/ara3d/bim-open-toolkit/blob/71790a7/docs/aec-world-model-terminology.md">AEC world-model terminology</a>
+maps the collision.</p>
+<p>The work in this paper is on the second side: a declarative substrate where every value has a
+provenance and every verdict has evidence. That is the right foundation for the first side. A
+learned model that predicts embodied carbon from partial geometry, or proposes a retrofit, needs
+a ground truth to be trained and checked against, and the tables, run records, and byte-exact
+diffs described here are what such a ground truth looks like. The extension the client should
+watch for is therefore not "replace the IFC with a neural model" but "train and audit
+predictors against the enriched, versioned models this pipeline produces".</p>
+<h2 id="85-federated-and-versioned-model-collections">8.5 Federated and versioned model collections</h2>
+<p>Every IFC MCP server surveyed, including the one described here, works on one loaded file. A
+portfolio, or one building across design stages, needs: element sets that persist across
+sessions; queries that span several models; a notion of epoch so that "carbon before and after
+the change" is one question; and stable identifiers that survive the trip from Revit to IFC to
+BOS to a lakehouse. The dataflow store and run records are a start on the query-history side.
+The identifier problem is the hard one and is unsolved in the industry.</p>
+<h2 id="86-design-records-under-version-control">8.6 Design records under version control</h2>
+<p>A longer-horizon vision, sketched in
+<a href="../ai_assisted_architecture_design_system.md">ai_assisted_architecture_design_system.md</a>, treats
+a project as a repository: checkpoints, design options as branches, proposed changes as
+reviewable requests, automated validation as a pipeline, and decisions as first-class records
+linked to the evidence that supported them. The enriched IFC files, rule files, verdict tables,
+and run records of this paper are the artefacts such a system would version. The byte-exact
+write-back path is what makes an IFC diff readable enough to review.</p>
+<h1 id="9-roadmap-for-an-open-bidirectional-viewer">9. Roadmap for an open bidirectional viewer</h1>
+<p>The statement of work asks for a possible roadmap for a future open-source, bidirectional
+viewer. "Bidirectional" means that the viewer not only displays analytics but can write
+selections, colourings, verdicts, and overrides back to the model in a form other tools read.</p>
+<h2 id="91-what-exists">9.1 What exists</h2>
+<p>The toolkit's web viewer is a WebGL viewer built on three.js that knows nothing about IFC or
+BOS; the dataflow graph feeds it instance tables with colour columns. The graph is edited by
+people and agents through the same four operations, and one MCP server exposes those
+operations. The byte-exact writer puts property sets back into the IFC. The pieces of a
+bidirectional viewer therefore exist; what is missing is the set of operations that make the
+viewer itself something an agent can drive, and the round trip from a click in the viewer to a
+property in the file.</p>
+<h2 id="92-operations-the-viewer-should-expose">9.2 Operations the viewer should expose</h2>
+<p>The MCP survey concluded that a strong core would have about fifteen tools rather than one per
+IFC entity type. For the viewer the equivalent set is:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Direction</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>select</code></td>
+<td>in</td>
+<td>Set the current selection from a <code>GlobalId</code> list or a query</td>
+</tr>
+<tr>
+<td><code>get_selection</code></td>
+<td>out</td>
+<td>Return the current selection as a table</td>
+</tr>
+<tr>
+<td><code>color_by</code></td>
+<td>in</td>
+<td>Colour instances from a value table and column, with a colour map</td>
+</tr>
+<tr>
+<td><code>isolate</code>, <code>hide</code>, <code>section</code></td>
+<td>in</td>
+<td>Reduce the scene to what matters for the question</td>
+</tr>
+<tr>
+<td><code>set_viewpoint</code>, <code>get_viewpoint</code></td>
+<td>in, out</td>
+<td>Camera as data, exportable as BCF</td>
+</tr>
+<tr>
+<td><code>annotate</code></td>
+<td>in</td>
+<td>Attach a label or a verdict marker to an element</td>
+</tr>
+<tr>
+<td><code>snapshot</code></td>
+<td>out</td>
+<td>A PNG of the current view, with the graph hash that produced it</td>
+</tr>
+<tr>
+<td><code>write_psets</code></td>
+<td>in</td>
+<td>Persist a table of (element, set, property, value) into the IFC</td>
+</tr>
+</tbody>
+</table>
+<p>Each of these is a node in the dataflow graph as well as a tool, so a colouring an agent
+produced is a graph a person can edit, and a person's manual selection is a table an agent can
+query.</p>
+<h2 id="93-stages">9.3 Stages</h2>
+<p><strong>Stage 1: viewer as a graph sink (largely done).</strong> Colour, isolate, section, and explode from
+the graph. Selection flows one way, from graph to viewer.</p>
+<p><strong>Stage 2: selection as data.</strong> Clicking in the viewer produces a table on a graph node. "Sum the
+carbon of what I have selected" becomes a two-node graph. Viewpoints are exported as BCF so that
+issues raised in the viewer can be opened in any BCF-aware tool.</p>
+<p><strong>Stage 3: write-back from the viewer.</strong> A verdict override, a reviewed-by stamp, or a corrected
+value entered in the property panel becomes a <code>sink.writePsets</code> run: staged, diffed, and applied
+only on an explicit run, with the entity diff shown before it is written.</p>
+<p><strong>Stage 4: multi-model and history.</strong> Load two versions of a model and colour by difference in a
+metric. Load a portfolio and query across it. This depends on the identifier and epoch work in
+Section 8.5.</p>
+<h2 id="94-constraints-to-keep">9.4 Constraints to keep</h2>
+<ul>
+<li>The viewer stays format-agnostic; IFC knowledge lives in the loaders and the graph.</li>
+<li>Every write to a file happens through the byte-exact path and only inside a run.</li>
+<li>Every image the viewer produces carries the hash of the graph and inputs that produced it.</li>
+<li>The same operations serve the mouse, the HTTP API, and the agent, so there is one path to
+  test and one to secure.</li>
+</ul>
+<h1 id="10-conclusion">10. Conclusion</h1>
+<p>The question the engagement set was how building analytics computed outside IFC can be stored
+with the model, shown on its geometry, and asked about in plain language. The answer this paper
+gives has three parts that fit together.</p>
+<p><strong>Store summaries in the file and the full data beside it.</strong> Custom property sets carry the
+scalar values that people look at, with units, stage, scenario, and run id in every set, at
+element, space, storey, and building level. An <code>IfcDocumentReference</code> points to a long-format
+Parquet table joined on <code>GlobalId</code> for everything else. A short metric dictionary ties the two
+together. Writing is done as a byte-exact patch, so that an enriched file differs from the
+original only in the entities that were added, and those can be removed to recover the original
+exactly.</p>
+<p><strong>Display from tables, not from the file.</strong> A value table joined on <code>GlobalId</code> drives colour,
+selection detail, and per-storey aggregates from one description. Unmatched elements are drawn
+grey so that missing data is visible.</p>
+<p><strong>Put the language model behind tools.</strong> A small, typed, read-only tool surface over a columnar
+copy of the model lets the model write queries that are correct, checkable, and cheap. Answers
+carry their derivation. Compliance rules are queries with a verdict column, and absence of data
+is a verdict, never a silent pass.</p>
+<p>The executed case study showed the pipeline working end to end on a public model without the
+language model in the loop: four rules from a machine-readable file, 56 verdicts in four
+categories with evidence, an exact match to independently derived ground truth, hash-identical
+output across runs, and a human override recorded in the IFC and removed again byte for byte.
+The remaining case study, natural-language questions over the same model enriched with carbon
+and energy values, is specified and will be reported in the next revision, together with the
+viewer comparison.</p>
+<p>What the client gains is not a viewer or a checker but a shape for the data: a row keyed by
+<code>GlobalId</code> that can be a carbon value, a verdict, or an override, and that can be coloured,
+summed, asked about, validated by an IDS, and written back. Everything in Sections 8 and 9,
+from IDS alignment to knowledge graphs to a bidirectional viewer, builds on that shape rather
+than replacing it.</p>
+<h1 id="appendix-a-property-set-definitions">Appendix A. Property-set definitions</h1>
+<p>The Layer 1 property sets recommended in Section 3.4. Names follow IFC conventions: the set
+name identifies the topic; each property name carries its lifecycle stage and unit so that the
+meaning survives tools that drop unit assignments. All values are <code>IfcPropertySingleValue</code>.</p>
+<p>Every set includes the two provenance properties <code>ScenarioName</code> and <code>AnalysisRunId</code>. A value
+without them cannot be joined back to the run that produced it and must be treated as
+unverified.</p>
+<h2 id="pset_nrcembodiedcarbon">Pset_NRCEmbodiedCarbon</h2>
+<p>Applies to: <code>IfcElement</code> subtypes, <code>IfcSpace</code>, <code>IfcBuildingStorey</code>, <code>IfcBuilding</code>, <code>IfcProject</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>IFC type</th>
+<th>Unit</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EmbodiedCarbon_A1A3_kgCO2e</code></td>
+<td><code>IfcReal</code></td>
+<td>kgCO2e</td>
+<td>Product stage total</td>
+</tr>
+<tr>
+<td><code>EmbodiedCarbon_A1A5_kgCO2e</code></td>
+<td><code>IfcReal</code></td>
+<td>kgCO2e</td>
+<td>Product plus construction stage total</td>
+</tr>
+<tr>
+<td><code>EmbodiedCarbon_kgCO2e_per_m2</code></td>
+<td><code>IfcReal</code></td>
+<td>kgCO2e/m2</td>
+<td>Intensity over the element's or container's reference area</td>
+</tr>
+<tr>
+<td><code>ReferenceArea_m2</code></td>
+<td><code>IfcReal</code></td>
+<td>m2</td>
+<td>The area used for the intensity</td>
+</tr>
+<tr>
+<td><code>ScenarioName</code></td>
+<td><code>IfcLabel</code></td>
+<td></td>
+<td>Scenario identifier</td>
+</tr>
+<tr>
+<td><code>AnalysisRunId</code></td>
+<td><code>IfcIdentifier</code></td>
+<td></td>
+<td>Run identifier, joins to Layer 2</td>
+</tr>
+</tbody>
+</table>
+<h2 id="pset_nrcoperationalcarbon">Pset_NRCOperationalCarbon</h2>
+<p>Applies to: as above.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>IFC type</th>
+<th>Unit</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OperationalCarbon_kgCO2e_per_year</code></td>
+<td><code>IfcReal</code></td>
+<td>kgCO2e/yr</td>
+<td>Annual operational emissions attributed to the object</td>
+</tr>
+<tr>
+<td><code>OperationalCarbon_kgCO2e_per_m2_year</code></td>
+<td><code>IfcReal</code></td>
+<td>kgCO2e/m2/yr</td>
+<td>Intensity</td>
+</tr>
+<tr>
+<td><code>GridEmissionFactor_kgCO2e_per_kWh</code></td>
+<td><code>IfcReal</code></td>
+<td>kgCO2e/kWh</td>
+<td>Factor used</td>
+</tr>
+<tr>
+<td><code>ScenarioName</code></td>
+<td><code>IfcLabel</code></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>AnalysisRunId</code></td>
+<td><code>IfcIdentifier</code></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="pset_nrcenergyperformance">Pset_NRCEnergyPerformance</h2>
+<p>Applies to: as above.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>IFC type</th>
+<th>Unit</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EnergyUseIntensity_kWh_per_m2_year</code></td>
+<td><code>IfcReal</code></td>
+<td>kWh/m2/yr</td>
+<td>Site energy use intensity</td>
+</tr>
+<tr>
+<td><code>AnnualEnergyUse_kWh</code></td>
+<td><code>IfcReal</code></td>
+<td>kWh</td>
+<td>Annual site energy</td>
+</tr>
+<tr>
+<td><code>HeatingEnergy_kWh</code></td>
+<td><code>IfcReal</code></td>
+<td>kWh</td>
+<td>Annual heating end use</td>
+</tr>
+<tr>
+<td><code>CoolingEnergy_kWh</code></td>
+<td><code>IfcReal</code></td>
+<td>kWh</td>
+<td>Annual cooling end use</td>
+</tr>
+<tr>
+<td><code>ScenarioName</code></td>
+<td><code>IfcLabel</code></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>AnalysisRunId</code></td>
+<td><code>IfcIdentifier</code></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="pset_nrcanalyticsprovenance">Pset_NRCAnalyticsProvenance</h2>
+<p>Applies to: <code>IfcProject</code>, and optionally any object that carries one of the sets above.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>IFC type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AnalysisRunId</code></td>
+<td><code>IfcIdentifier</code></td>
+<td>Run identifier</td>
+</tr>
+<tr>
+<td><code>SourceTool</code></td>
+<td><code>IfcLabel</code></td>
+<td>Tool name and version</td>
+</tr>
+<tr>
+<td><code>Methodology</code></td>
+<td><code>IfcLabel</code></td>
+<td>Standard or method (for example EN 15978)</td>
+</tr>
+<tr>
+<td><code>ComputedAt</code></td>
+<td><code>IfcLabel</code></td>
+<td>ISO 8601 timestamp, UTC</td>
+</tr>
+<tr>
+<td><code>ComputedBy</code></td>
+<td><code>IfcLabel</code></td>
+<td>Person or organisation</td>
+</tr>
+<tr>
+<td><code>MetricDictionaryVersion</code></td>
+<td><code>IfcLabel</code></td>
+<td>Version of the Layer 3 dictionary</td>
+</tr>
+<tr>
+<td><code>ResultDatasetURI</code></td>
+<td><code>IfcText</code></td>
+<td>Location of the Layer 2 table</td>
+</tr>
+<tr>
+<td><code>ResultDatasetFormat</code></td>
+<td><code>IfcLabel</code></td>
+<td><code>Parquet</code>, <code>CSV</code>, or <code>DuckDB</code></td>
+</tr>
+<tr>
+<td><code>ResultDatasetChecksum</code></td>
+<td><code>IfcLabel</code></td>
+<td>SHA-256 of the table file</td>
+</tr>
+<tr>
+<td><code>JoinKey</code></td>
+<td><code>IfcLabel</code></td>
+<td><code>GlobalId</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="ara3d_compliance">Ara3D_Compliance</h2>
+<p>The set used in case study B to record a verdict and a human override on an element. Included
+here because it follows the same pattern and was verified in the round-trip test.</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>IFC type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Verdict</code></td>
+<td><code>IfcLabel</code></td>
+<td>Verdict produced by the checker</td>
+</tr>
+<tr>
+<td><code>OverrideVerdict</code></td>
+<td><code>IfcLabel</code></td>
+<td>Verdict asserted by the reviewer</td>
+</tr>
+<tr>
+<td><code>OverrideReason</code></td>
+<td><code>IfcText</code></td>
+<td>Justification</td>
+</tr>
+<tr>
+<td><code>ReviewedBy</code></td>
+<td><code>IfcLabel</code></td>
+<td>Reviewer</td>
+</tr>
+</tbody>
+</table>
+<p>A production version should add <code>RuleId</code>, <code>Citation</code>, <code>CheckedAt</code>, and <code>RuleFileChecksum</code>.</p>
+<h2 id="example-step-output">Example STEP output</h2>
+<p>The lines appended for one element by the writer in Section 3.5, ids relative to the file's
+highest existing id:</p>
+<pre><code class="language-text">#38899=IFCPROPERTYSINGLEVALUE('EmbodiedCarbon_A1A3_kgCO2e',$,IFCREAL(412.7),$);
+#38900=IFCPROPERTYSINGLEVALUE('ScenarioName',$,IFCLABEL('Baseline'),$);
+#38901=IFCPROPERTYSINGLEVALUE('AnalysisRunId',$,IFCIDENTIFIER('run-2026-07-14-01'),$);
+#38902=IFCPROPERTYSET('1kQ7x$...',#41,'Pset_NRCEmbodiedCarbon',$,(#38899,#38900,#38901));
+#38903=IFCRELDEFINESBYPROPERTIES('2mR8y$...',#41,$,$,(#1234),#38902);
+</code></pre>
+<p>The two <code>GlobalId</code> literals are deterministic hashes of the caller's key, so a second run
+produces the same five lines.</p>
+<h1 id="appendix-b-rule-file-schema">Appendix B. Rule file schema</h1>
+<p>The machine-readable provision file used in case study B. It is JSON with one object per rule.
+The full file is at
+<a href="https://github.com/ara3d/bim-open-toolkit/blob/71790a7/tests/Ara3D.DoorClearance.Tests/rules/door-clearance-rules.json">door-clearance-rules.json</a>.</p>
+<h2 id="structure">Structure</h2>
+<pre><code class="language-text">RuleSet
+  description        string   Note on provenance; states that citations are illustrative
+  rules[]            Rule
+
+Rule
+  id                 string   Stable identifier, e.g. &quot;DC-W1&quot;
+  citation
+    code             string   Code name, e.g. &quot;NBC 2020&quot;
+    clause           string   Clause reference
+    text             string   Paraphrase of the requirement
+  applicability
+    entityType       string   IFC entity type the rule applies to
+    storey           string?  Storey name filter, or null for all storeys
+  requirement
+    kind             enum     &quot;property-threshold&quot; | &quot;measured-vs-declared&quot; | &quot;zone-unobstructed&quot;
+    source           string   Where the value comes from (attribute, pset, or geometry)
+    minWidthMm       number?  For property-threshold
+    toleranceMm      number?  For measured-vs-declared
+    zoneDepthFactor  number?  For zone-unobstructed: zone depth as a multiple of door width
+  verdictSemantics   string   Sentence stating when each verdict is produced
+</code></pre>
+<p>The <code>applicability</code> object is the same shape as an IDS applicability facet (entity type plus a
+container filter), which is what makes the IDS mapping in Section 8.2 straightforward for the
+property-threshold kind.</p>
+<h2 id="one-rule-in-full">One rule in full</h2>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;DC-Z1&quot;,
+  &quot;citation&quot;: {
+    &quot;code&quot;: &quot;NBC 2020&quot;,
+    &quot;clause&quot;: &quot;3.8.3.12(3) (illustrative, not legal text)&quot;,
+    &quot;text&quot;: &quot;A clear and level area shall be provided on the latch side and in front of an accessible door, unobstructed by fixed furnishings, sufficient for a wheelchair to approach and operate the door.&quot;
+  },
+  &quot;applicability&quot;: { &quot;entityType&quot;: &quot;IFCDOOR&quot;, &quot;storey&quot;: &quot;Level 1&quot; },
+  &quot;requirement&quot;: {
+    &quot;kind&quot;: &quot;zone-unobstructed&quot;,
+    &quot;source&quot;: &quot;placement-chain AABB vs IFCFURNISHINGELEMENT placements&quot;,
+    &quot;zoneDepthFactor&quot;: 1.0
+  },
+  &quot;verdictSemantics&quot;: &quot;pass when no furnishing element origin falls inside the clearance zone box (door footprint expanded by one door width); fail when one does; not_applicable outside the storey filter; inconclusive when the door placement cannot be resolved.&quot;
+}
+</code></pre>
+<h2 id="verdict-record">Verdict record</h2>
+<p>Each (element, rule) evaluation produces one record. The CSV written by the checker has these
+columns, and its SHA-256 is the determinism check.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GlobalId</code></td>
+<td>The element</td>
+</tr>
+<tr>
+<td><code>RuleId</code></td>
+<td>The rule</td>
+</tr>
+<tr>
+<td><code>Verdict</code></td>
+<td><code>Pass</code>, <code>Fail</code>, <code>NotApplicable</code>, or <code>Inconclusive</code></td>
+</tr>
+<tr>
+<td><code>Evidence</code></td>
+<td>The values read and compared, in words</td>
+</tr>
+<tr>
+<td><code>Citation</code></td>
+<td>Code and clause from the rule</td>
+</tr>
+</tbody>
+</table>
+<p>An example evidence string for DC-W1 on a failing door:</p>
+<pre><code class="language-text">IFCDOOR.OverallWidth attribute = 762 mm; required &gt;= 850 mm
+</code></pre>
+<h2 id="relation-to-the-dataflow-verdict-table">Relation to the dataflow verdict table</h2>
+<p>The compliance node pack in the toolkit uses the verdict set <code>Pass</code>, <code>Fail</code>, <code>NeedsReview</code>,
+<code>InfoNotAvailable</code> and the columns <code>verdict</code>, <code>checkId</code>, <code>checkTitle</code>, <code>citation</code>. The mapping
+from the checker's set is: <code>Inconclusive</code> to <code>InfoNotAvailable</code>, <code>NotApplicable</code> to a row
+omitted by the applicability filter before the check node, and <code>NeedsReview</code> as an addition
+for rows that fail but are flagged by a review expression. A future revision should adopt one
+vocabulary.</p>
+<h1 id="appendix-c-mcp-tool-surface">Appendix C. MCP tool surface</h1>
+<p>The tools the language model is given in Section 5. Two servers are described. Both are in the
+BIM Open Toolkit at commit <code>71790a7</code>.</p>
+<h2 id="c1-ifc-mcp-server-ara3difcmcp">C.1 IFC MCP server (<code>Ara3D.Ifc.Mcp</code>)</h2>
+<p>Answers questions about one or more IFC files. Runs over stdio by default, which is how MCP
+clients launch a server, or over HTTP for manual testing. Recent models are kept open in a
+session cache (three by default). Every list result takes <code>skip</code> and <code>take</code> and reports the
+unpaged <code>total</code>.</p>
+<p><strong>Model and header</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ifc_open</code>, <code>ifc_close</code>, <code>ifc_models</code></td>
+<td>Schema and entity count; free a model; list open models</td>
+</tr>
+<tr>
+<td><code>ifc_header</code></td>
+<td>STEP header: description, originating file, schema</td>
+</tr>
+<tr>
+<td><code>ifc_type_counts</code></td>
+<td>Entity counts by IFC type</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Entities and attributes</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ifc_search</code></td>
+<td>Entities whose name, <code>GlobalId</code>, or type contains text</td>
+</tr>
+<tr>
+<td><code>ifc_entity</code></td>
+<td>One entity by STEP id with raw attributes</td>
+</tr>
+<tr>
+<td><code>ifc_entities_of_type</code></td>
+<td>Every entity of one type</td>
+</tr>
+<tr>
+<td><code>ifc_attributes</code></td>
+<td>Raw STEP attributes by position</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Properties and quantities</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ifc_properties</code></td>
+<td>Properties grouped by property set</td>
+</tr>
+<tr>
+<td><code>ifc_quantities</code></td>
+<td>Lengths, areas, volumes, counts, weights</td>
+</tr>
+<tr>
+<td><code>ifc_property_sets</code></td>
+<td>Set names and sizes</td>
+</tr>
+<tr>
+<td><code>ifc_parameters</code></td>
+<td>Every parameter in the model with element counts, ranges, samples</td>
+</tr>
+<tr>
+<td><code>ifc_parameter_values</code></td>
+<td>Distinct values of one parameter and their counts</td>
+</tr>
+<tr>
+<td><code>ifc_find_by_parameter</code></td>
+<td>Elements whose parameter passes a test (<code>eq</code>, <code>contains</code>, <code>gt</code>, ...)</td>
+</tr>
+<tr>
+<td><code>ifc_parameter_table</code></td>
+<td>A row per element, a column per parameter</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Relations and spatial structure</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ifc_relations</code></td>
+<td>Relationship edges touching an entity</td>
+</tr>
+<tr>
+<td><code>ifc_spatial_tree</code></td>
+<td>Project, site, building, storey, space</td>
+</tr>
+<tr>
+<td><code>ifc_spatial_contents</code></td>
+<td>Elements directly inside one container</td>
+</tr>
+<tr>
+<td><code>ifc_element_containment</code></td>
+<td>The container chain above an element</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Geometry</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ifc_mesh</code></td>
+<td>Mesh statistics</td>
+</tr>
+<tr>
+<td><code>ifc_bounds</code></td>
+<td>Bounding boxes</td>
+</tr>
+<tr>
+<td><code>ifc_volume</code></td>
+<td>Volume and surface area</td>
+</tr>
+<tr>
+<td><code>ifc_export_glb</code></td>
+<td>Writes a GLB</td>
+</tr>
+<tr>
+<td><code>ifc_meshing_diagnostics</code></td>
+<td>What failed to mesh and why</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Analytics</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ifc_to_bos</code></td>
+<td>Converts to BIM Open Schema, optionally saving the <code>.bos</code></td>
+</tr>
+<tr>
+<td><code>ifc_table</code></td>
+<td>Tables and views with row counts and column types</td>
+</tr>
+<tr>
+<td><code>ifc_sql</code></td>
+<td>One read-only DuckDB statement, paged</td>
+</tr>
+<tr>
+<td><code>ifc_sql_export</code></td>
+<td>Full result to <code>.csv</code>, <code>.parquet</code>, or <code>.json</code></td>
+</tr>
+</tbody>
+</table>
+<p>The SQL tools reject anything but a single read-only statement. The text views <code>EntityText</code>,
+<code>ParameterText</code>, and <code>RelationText</code> resolve BOS's interned string and enum indexes so that a
+query can see names and values.</p>
+<h2 id="c2-dataflow-mcp-server-bimopenflowmcp">C.2 Dataflow MCP server (<code>BimOpenFlow.Mcp</code>)</h2>
+<p>Exposes the graph-editing operations. Each tool is one of the operations behind the HTTP API
+and the web editor, so a graph an agent builds is the kind a person builds.</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>listDatabases</code></td>
+<td>DuckDB files under the model roots</td>
+</tr>
+<tr>
+<td><code>describeDatabase</code></td>
+<td>Tables with row counts and columns; with <code>table</code>, column types, null and distinct counts, samples, ranges</td>
+</tr>
+<tr>
+<td><code>getNodeCatalog</code></td>
+<td>Every node kind with ports, parameters, enum values, and capability</td>
+</tr>
+<tr>
+<td><code>listAnalyses</code>, <code>getAnalysis</code>, <code>saveAnalysis</code></td>
+<td>The graph library</td>
+</tr>
+<tr>
+<td><code>editGraph</code></td>
+<td>A list of <code>addNode</code>, <code>setParam</code>, <code>connect</code>, <code>removeNode</code> edits, validated together and saved once</td>
+</tr>
+<tr>
+<td><code>addNode</code>, <code>setParam</code>, <code>connect</code>, <code>removeNode</code></td>
+<td>Single edits</td>
+</tr>
+<tr>
+<td><code>evaluate</code></td>
+<td>Per-node status: <code>Ok</code>, <code>Unready</code>, <code>EffectPending</code>, <code>Unavailable</code>, <code>Error</code></td>
+</tr>
+<tr>
+<td><code>getResult</code></td>
+<td>One node output as a paged table slice</td>
+</tr>
+<tr>
+<td><code>createRun</code>, <code>listRuns</code></td>
+<td>Freeze an evaluation as an immutable run record; list the archive</td>
+</tr>
+</tbody>
+</table>
+<h2 id="c3-client-configuration">C.3 Client configuration</h2>
+<p>Registering the IFC server with an MCP client:</p>
+<pre><code class="language-json">{
+  &quot;mcpServers&quot;: {
+    &quot;ara3d-ifc&quot;: {
+      &quot;command&quot;: &quot;dotnet&quot;,
+      &quot;args&quot;: [&quot;run&quot;, &quot;--project&quot;, &quot;src/Ara3D.Ifc.Mcp&quot;]
+    }
+  }
+}
+</code></pre>
+<p>Under stdio, standard output is the protocol stream and all diagnostics go to standard error.</p>
+<h1 id="proof-of-concept-gap-report">Proof-of-concept gap report</h1>
+<p><em>Run of 2026-09-17 on the BIM Open Toolkit at commit <code>afe69b4</code> plus one local change. This
+report lists what the run set out to show, what it showed, and what it did not.</em></p>
+<p>The run is described in <a href="../poc/README.md">poc/README.md</a>. Its purpose was to produce
+evidence for the paper's three claims: analytics can be stored in IFC and travel with the
+file (Section 3), displayed from the same tables (Section 4), and queried through a small tool
+surface (Section 5).</p>
+<h2 id="1-what-was-demonstrated">1. What was demonstrated</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Evidence</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Layer 1 property sets at element, storey, building, project level</td>
+<td>664 sets, 2,438 typed values written into <code>duplex-enriched.ifc</code>; <code>enrich-report.json</code></td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Byte-exact, auditable, reversible write</td>
+<td>Entity diff equals the additions; removal restores the source byte for byte; second run byte-identical</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Layer 2 long-format table with provenance</td>
+<td><code>nrc_analytics_long.csv</code>; <code>Pset_NRCAnalyticsProvenance</code> on the project names it with join key</td>
+<td>Done, except the <code>IfcDocumentReference</code> entity itself (see 2.3)</td>
+</tr>
+<tr>
+<td>Natural-language questions at component, storey, building, category, provenance, absence level</td>
+<td>8 questions, 12 tool calls, transcript with every call and result</td>
+<td>Done, author as agent (see 2.1)</td>
+</tr>
+<tr>
+<td>Answers match independent expectation</td>
+<td>7 of 8 exact; Q2 differs because of incomplete storey resolution</td>
+<td>Done, with one honest miss</td>
+</tr>
+<tr>
+<td>Aggregated views (chart, table per storey)</td>
+<td>Figures 2 and 3, from a two-node graph over the storey CSV</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Values shown as a table</td>
+<td>Figure 4, the written property values</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Colour coding on 3D geometry from a value table</td>
+<td>Figures 5 to 8, captured 2026-09-18 after the converter and loader fixes (see 2.2)</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Property panel on a selected element</td>
+<td>Figure 13: the toolkit's 3D pane lists the picked element's property sets, fetched from the host (toolkit commits f9900c9, e8b3230, 54dfb8a)</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Viewer comparison from the test kit</td>
+<td>One row, the toolkit viewer, from the walkthrough; other viewers not run</td>
+<td>Partly done</td>
+</tr>
+<tr>
+<td>Autonomous LLM agent answering unattended</td>
+<td><code>gpt-5</code> through <code>bimopenmcp-ifc-ask</code>, 2026-09-18: four of eight match, transcript in <code>poc/results/transcript-unattended.md</code></td>
+<td>Done, with three misses explained in Section 6.2</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-gaps-found">2. Gaps found</h2>
+<h3 id="21-the-agent-was-the-author-unattended-runner-added-2026-09-18">2.1 The agent was the author (unattended runner added 2026-09-18)</h3>
+<p>The questions were answered by choosing MCP tool calls by hand and recording each call and
+result before writing the answer. This proves the tool surface can answer the paper's
+question list from the enriched file. It does not measure how a language model performs
+unattended. The toolkit now has <code>bimopenmcp-ifc-ask</code> (<code>src/studio/BimOpenMcp.Ifc.Ask</code>), which
+runs a question list unattended through the same agent loop as the DuckDB Ask box, against
+the IFC MCP server in process, one fresh conversation per question, and records every tool
+call; <code>samples/nrc/questions.txt</code> holds this paper's eight questions. The run of 2026-09-18
+is in Section 6.2: the misses come from the storey and building aggregates sharing the element
+property names, which is a storage-design finding (see 2.10).</p>
+<h3 id="22-the-3d-viewer-rejected-the-duplex-model-resolved-2026-09-18">2.2 The 3D viewer rejected the Duplex model (resolved 2026-09-18)</h3>
+<p>Every colouring graph (<code>nrc-color-operational-carbon</code>, <code>-embodied-carbon</code>, <code>-category</code>,
+<code>nrc-door-verdicts-dc-w1</code>) validates and evaluates on the host, but the 3D pane reports:</p>
+<pre><code class="language-text">The BOS archive could not be prepared: Invalid BFAST transform 495
+</code></pre>
+<p>The same error occurs for the original <code>duplex.ifc</code>, so the enrichment is not the cause. The
+message comes from the viewer's loader (<code>viz/packages/loaders/src/bfast-loader.ts</code>), which
+throws when any instance transform contains a non-finite number. The host's IFC-to-BOS
+geometry path therefore emits at least one NaN or infinite transform for this model, and the
+loader aborts the whole model rather than skipping the instance. Two fixes are needed in the
+toolkit: find and correct the transform in the converter, and make the loader drop or flag a
+bad instance instead of failing the load. Until then the paper has no 3D colour-coded figure
+on a public model. The Snowdon sample renders, but it is a private model and its screenshot
+cannot be published.</p>
+<p>Screenshot of the failure: <a href="figures/gap-3d-pane-duplex-error.png">gap-3d-pane-duplex-error.png</a>.</p>
+<p>Resolution: the cause was one zero-vertex mesh whose translation web-ifc reports as infinity;
+the toolkit's converter now skips zero-vertex meshes and non-finite transforms (commit
+<code>53a69d9</code>), and the web loaders hide such an instance and report it as skipped instead of
+rejecting the model (<code>53129a8</code>). The colouring graphs were moved into the toolkit as
+<code>samples/nrc-analyses/nrc-color-*</code> with tests (<code>21e6b52</code>), and Figures 5 to 8 were captured by
+<code>scripts/nrc-walkthrough.mjs</code> (<code>66df499</code>).</p>
+<h3 id="23-no-ifcdocumentreference-was-written-builder-added-2026-09-18">2.3 No <code>IfcDocumentReference</code> was written (builder added 2026-09-18)</h3>
+<p>Layer 2 is referenced from the project through properties in <code>Pset_NRCAnalyticsProvenance</code>
+(<code>ResultDatasetURI</code>, <code>ResultDatasetFormat</code>, <code>JoinKey</code>). The recommendation in Section 3.4 calls
+for an <code>IfcDocumentReference</code> associated through <code>IfcRelAssociatesDocument</code>. The toolkit now has
+<code>IfcDocumentReferenceBuilder</code> (commit <code>6b34a54</code>), which emits <code>IFCDOCUMENTINFORMATION</code>,
+<code>IFCDOCUMENTREFERENCE</code>, and <code>IFCRELASSOCIATESDOCUMENT</code> with the IFC2X3 or IFC4 attribute
+layout, tested against the Duplex project entity for an exact diff and byte-for-byte reversal.
+The enriched file in <code>poc/data</code> was not rewritten with it; doing so is one call in
+<code>poc/EnrichIfc/Program.cs</code>.</p>
+<h3 id="24-the-bim-host-profile-could-not-load-a-csv">2.4 The <code>bim</code> host profile could not load a CSV</h3>
+<p>The host's <code>bim</code> profile registered the geometry, BOS, compliance, effects, and viz packs but
+not the DuckDB or Tables packs, so a <code>csv.read</code> node was an unknown kind and no external value
+table could drive a colouring. A one-line change adds the two packs to the profile; the host
+tests pass with it. This is committed to the toolkit as part of this run. The Tables-profile
+tests that pin its exact contents are unaffected.</p>
+<h3 id="25-storey-resolution-through-relations-missed-assembly-parts-view-added">2.5 Storey resolution through relations missed assembly parts (view added)</h3>
+<p>The converted model's <code>ContainedIn</code> relation points at rooms for elements inside a room and at
+the storey for others, and stair, railing, and member parts are reached only through
+<code>PartOf</code>. The Q2 query walked room to storey but not assembly to element, reached 93 of 103
+Level 1 elements, and reversed a marginal comparison. The toolkit's text views now include
+<code>StoreyOfEntity</code>, which walks <code>ContainedIn</code>, <code>PartOf</code>, and <code>MemberOf</code> (the Duplex conversion
+emits aggregation as <code>MemberOf</code>); the seeded graph <code>nrc-storey-of-element</code> reaches all 103
+Level 1 elements (Figure 10), and the IFC MCP server exposes the same view to <code>ifc_sql</code>.</p>
+<h3 id="26-sinkwritepsets-wrote-every-value-as-text-resolved">2.6 <code>sink.writePsets</code> wrote every value as text (resolved)</h3>
+<p>The dataflow node writes <code>IFCTEXT</code> for every value, so numeric analytics written through a
+graph would read back as strings. The proof of concept bypassed the node and called the
+library directly to get <code>IFCREAL</code>. The node now accepts an optional <code>valueType</code> column, and the seeded graph <code>nrc-enrich-run</code>
+writes <code>psets_to_write.csv</code> with its types under an engine Run.</p>
+<h3 id="27-names-are-ambiguous-keys">2.7 Names are ambiguous keys</h3>
+<p>Four doors share the family name used in Q4. The agent listed all four rather than picking
+one, which is the right behaviour, but the question list should use <code>GlobalId</code> for
+component-level questions, and the paper's Section 6.2 should say so.</p>
+<h3 id="28-one-toolkit-test-failed-on-this-machine-independently-of-the-change-resolved">2.8 One toolkit test failed on this machine independently of the change (resolved)</h3>
+<p><code>BimSampleSeedingTests.EmptyStore_SeedsBimAndView3dSamples</code> expects the seeded list to end
+without a Snowdon entry, and fails wherever the private Snowdon file is present. It fails with
+and without the profile change. The test now includes the Snowdon ids only when the local model exists.</p>
+<h3 id="29-windows-only">2.9 Windows only</h3>
+<p>The IFC loader, the MCP server, and the write path target <code>net8.0-windows</code>. Nothing in this
+run could be repeated on Linux or macOS.</p>
+<h3 id="210-aggregates-share-the-element-property-names-found-by-the-unattended-run">2.10 Aggregates share the element property names (found by the unattended run)</h3>
+<p><code>Pset_NRCOperationalCarbon.OperationalCarbon_kgCO2e_per_year</code> is written on elements, on
+storeys, and on the building. A sum or ranking over the property that does not exclude the
+container classes counts the aggregates as elements (Q3, Q5) and doubles per-storey sums
+(Q8). Appendix A should give the aggregate sets distinct names, and the generator, the
+enrichment, and the expected answers should be rerun with them.</p>
+<h2 id="3-what-to-do-next-in-order">3. What to do next, in order</h2>
+<p>Items 1 to 5 of the original list were done in the toolkit on 2026-09-18 (sections 2.1, 2.2,
+2.3, 2.5, 2.6 above). What remains:</p>
+<ol>
+<li>Rename the storey and building aggregate sets (2.10), regenerate, re-enrich, and rerun the
+   unattended questions; then quote the match count in the abstract.</li>
+<li>Rewrite the enriched file with the <code>IfcDocumentReference</code> and re-verify the diff and hash.</li>
+<li>Run the viewer test kit through the rest of the shortlist in Section 4.3 (Bonsai first).</li>
+<li>Repeat the run on an NRC model with real analytics.</li>
+</ol>
+<h1 id="references">References</h1>
+<h2 id="standards-and-specifications">Standards and specifications</h2>
+<ol>
+<li>ISO 16739-1:2024. Industry Foundation Classes (IFC) for data sharing in the construction and
+   facility management industries. buildingSMART IFC 4.3.2 documentation:
+   https://ifc43-docs.standards.buildingsmart.org/</li>
+<li>buildingSMART International. Information Delivery Specification (IDS) 1.0, 2024.
+   https://technical.buildingsmart.org/projects/information-delivery-specification-ids/</li>
+<li>buildingSMART International. BIM Collaboration Format (BCF).
+   https://technical.buildingsmart.org/standards/bcf/</li>
+<li>Rasmussen, M. H., et al. BOT: The Building Topology Ontology of the W3C Linked Building
+   Data Group. Semantic Web 12(1), 2021.</li>
+<li>EN 15978:2011. Sustainability of construction works. Assessment of environmental performance
+   of buildings. Calculation method.</li>
+<li>National Research Council of Canada. National Building Code of Canada 2020.</li>
+<li>Model Context Protocol specification. https://modelcontextprotocol.io/</li>
+</ol>
+<h2 id="ifc-entities-cited">IFC entities cited</h2>
+<ul>
+<li><code>IfcRelDefinesByProperties</code>, <code>IfcPropertySet</code>, <code>IfcPropertySingleValue</code> (ref. 1, sections 5.1.3.38, 8.16.3.12)</li>
+<li><code>Pset_EnvironmentalImpactIndicators</code> (ref. 1, section 5.4.4.14)</li>
+<li><code>IfcElementQuantity</code> (ref. 1, section 5.4.3.21)</li>
+<li><code>IfcMaterialProperties</code> (ref. 1, section 8.10.3.16)</li>
+<li><code>IfcDocumentReference</code>, <code>IfcRelAssociatesDocument</code> (ref. 1, section 5.1.3.31)</li>
+<li><code>IfcLibraryInformation</code> (ref. 1, section 8.6.3.9)</li>
+<li><code>IfcRelAssociatesClassification</code> (ref. 1, section 5.1.3.30)</li>
+<li><code>IfcPerformanceHistory</code> (ref. 1, section 5.2.3.1)</li>
+<li><code>IfcMetric</code>, <code>IfcRelAssociatesConstraint</code> (ref. 1, sections 8.3.3.2, 5.2.3.3)</li>
+</ul>
+<h2 id="software">Software</h2>
+<ol start="8">
+<li>Ara 3D. BIM Open Toolkit. MIT licence. https://github.com/ara3d/bim-open-toolkit
+   (cited at commit <code>71790a7</code>).</li>
+<li>Ara 3D. BIM Open Schema specification. https://github.com/ara3d/bim-open-schema</li>
+<li>IfcOpenShell. https://ifcopenshell.org/</li>
+<li>Bonsai (formerly BlenderBIM). https://bonsaibim.org/</li>
+<li>That Open Company. That Open Engine / Components. https://github.com/ThatOpen/engine_components</li>
+<li>web-ifc. https://github.com/ThatOpen/engine_web-ifc</li>
+<li>xBIM Toolkit and Xplorer. https://xbim.net/</li>
+<li>IFClite. https://github.com/ifclite</li>
+<li>DuckDB. https://duckdb.org/</li>
+<li>Apache Parquet. https://parquet.apache.org/</li>
+</ol>
+<h2 id="sample-models">Sample models</h2>
+<ol start="18">
+<li>buildingSMART. Duplex Apartment sample model (<code>duplex.ifc</code>), IFC2X3.</li>
+<li>Karlsruhe Institute of Technology. FZK-Haus and Institute reference models (<code>AC20-FZK-Haus.ifc</code>,
+    <code>C20-Institute-Var-2.ifc</code>). https://www.ifcwiki.org/index.php/KIT_IFC_Examples</li>
+</ol>
+<h2 id="project-documents-this-repository">Project documents (this repository)</h2>
+<ol start="20">
+<li>Statement of Work. <a href="../statement-of-work.md">statement-of-work.md</a></li>
+<li>Storing Analytics in IFC: options brief. <a href="../storing-analytics-in-ifc.md">storing-analytics-in-ifc.md</a></li>
+<li>IDS overview. <a href="../ids.md">ids.md</a></li>
+<li>IFC viewer inventory. <a href="../ifc-viewers.md">ifc-viewers.md</a></li>
+<li>MCP tools that can wrap an IFC. <a href="../mcp-ifc.md">mcp-ifc.md</a></li>
+<li>BOS toolchain validation evidence inventory. <a href="../bos-validation-evidence.md">bos-validation-evidence.md</a></li>
+<li>Door clearance demonstration. <a href="../door-clearance-demo.md">door-clearance-demo.md</a></li>
+<li>Door ground-truth dataset. <a href="../IFC-Test-Kit/door_ground_truth.md">IFC-Test-Kit/door_ground_truth.md</a></li>
+<li>AI-assisted architecture planning and design on Git. <a href="../ai_assisted_architecture_design_system.md">ai_assisted_architecture_design_system.md</a></li>
+</ol>
+<h2 id="code-cited">Code cited</h2>
+<ol start="29">
+<li><code>Ara3D.Ifc.Editing</code>: <code>IfcPropertySetBuilder</code>, <code>IfcPatcher</code>, <code>IfcDiff</code>, <code>IfcPropertyValue</code>.
+    https://github.com/ara3d/bim-open-toolkit/tree/71790a7/src/Ara3D.Ifc.Editing</li>
+<li><code>Ara3D.DoorClearance.Tests</code>: <code>ComplianceChecker</code>, <code>OverrideTests</code>, <code>rules/door-clearance-rules.json</code>.
+    https://github.com/ara3d/bim-open-toolkit/tree/71790a7/tests/Ara3D.DoorClearance.Tests</li>
+<li><code>Ara3D.Ifc.Mcp</code> README and <code>Ara3D.Ifc.Mcp.Tests</code>.
+    https://github.com/ara3d/bim-open-toolkit/tree/71790a7/src/Ara3D.Ifc.Mcp</li>
+<li><code>BimOpenFlow.Nodes.Compliance</code>: <code>CheckRuleNode</code>.
+    https://github.com/ara3d/bim-open-toolkit/tree/71790a7/src/BimOpenFlow.Nodes.Compliance</li>
+<li>Building a DuckDB BIM Flow graph from natural language.
+    https://github.com/ara3d/bim-open-toolkit/blob/71790a7/docs/bim-flow-mcp-demo.md</li>
+<li>AEC world-model terminology.
+    https://github.com/ara3d/bim-open-toolkit/blob/71790a7/docs/aec-world-model-terminology.md</li>
+</ol>
+</body>
+</html>
