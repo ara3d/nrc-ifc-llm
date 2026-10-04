@@ -84,4 +84,15 @@ jobs:
       # The pin's CI builds the solution, then runs this project with no filter; building only
       # this project and its references is the same test with less to compile.
       - name: Toolkit NRC answer tests (BimOpenFlow.NrcWorkflows.Tests)
-        run: dotnet test bim-open-toolkit/tests/flow/BimOpenFlow.NrcWorkflows.Tests -c Release
+        shell: bash
+        run: >
+          dotnet test bim-open-toolkit/tests/flow/BimOpenFlow.NrcWorkflows.Tests -c Release
+          --logger "trx;LogFileName=nrc.trx" --results-directory "$RUNNER_TEMP/test-results"
+      # The counts as an annotation on the run, readable without downloading the log.
+      - name: Report the test counts
+        if: always()
+        shell: bash
+        run: >
+          python -c "import glob, xml.etree.ElementTree as ET;
+          c = ET.parse(glob.glob(r'$RUNNER_TEMP/test-results/*.trx')[0]).getroot().find('{*}ResultSummary/{*}Counters');
+          print(f'::notice title=toolkit-nrc::{c.get(\"passed\")} passed, {c.get(\"failed\")} failed of {c.get(\"total\")} tests')"
