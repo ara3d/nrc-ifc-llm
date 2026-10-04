@@ -1,0 +1,9 @@
+# References into bim-open-toolkit that are already missing at the pinned commit, with the
+# reason. Format: file | toolkit path | reason. checks/check_toolkit_paths.py reports these as
+# KNOWN instead of failing, and fails on an entry that no longer matches, so fix the
+# reference and delete its line together.
+paper/appendix-c-tool-surface.md | src/Ara3D.Ifc.Mcp | pre-reorganisation name of the IFC MCP server; at the pin it is src/mcp/BimOpenMcp.Ifc (paper content, left for the editorial pass, M5)
+paper/paper.md | src/Ara3D.Ifc.Mcp | built copy of appendix C; regenerate after fixing the chapter
+paper/nrc-style-paper.md | src/Ara3D.Ifc.Mcp | built copy of appendix C; regenerate after fixing the chapter
+paper/nrc-style/p13-annexes.md | src/Ara3D.Ifc.Mcp | NRC-style copy of appendix C
+paper/handoff-needs.md | src/studio/BimOpenFlow.Studio/AskAgent.cs | historical note; at the pin the file is src/studio/BimOpenFlow.Ask/AskAgent.cs
