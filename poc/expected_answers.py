@@ -20,8 +20,8 @@ def num(v: str):
     return None if v == "" else float(v)
 
 
-def main() -> None:
-    rows = list(csv.DictReader(open(ELEMENTS, encoding="utf-8")))
+def compute(rows: list[dict]) -> dict:
+    """The expected answer to each question, from the rows of nrc_analytics_elements.csv."""
     oc = "OperationalCarbon_kgCO2e_per_year"
     eui = "EnergyUseIntensity_kWh_per_m2_year"
     ec = "EmbodiedCarbon_A1A3_kgCO2e"
@@ -81,6 +81,11 @@ def main() -> None:
             "unit": "kgCO2e",
         },
     }
+    return expected
+
+
+def main() -> None:
+    expected = compute(list(csv.DictReader(open(ELEMENTS, encoding="utf-8"))))
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(expected, indent=2), encoding="utf-8")
     print(json.dumps(expected, indent=2))
