@@ -255,13 +255,13 @@ The eight questions were written by the author over data the author generated. O
 
 The run cost $6.79 at list price and 46 minutes of wall time at three sessions at a time. A deterministic comparator settled 38 questions; an evaluating agent reviewed all 100, and its verdicts have not yet been checked by the author, which Section 7 records.
 
-The value of the benchmark was in the 29 wrong answers, which were read one by one. Three toolkit defects came out of them, all in the data layer and none in the agent:
+The value of the benchmark was in the 29 wrong answers, which were read one by one. Three toolkit defects came out of them, two in the layer that reads the file into tables and one in the agent's guide:
 
 1. **Duplicate property sets doubled totals.** The DigitalHub Revit exports attach two property sets of the same name with the same values to every pipe and duct, and the converter wrote both, so a sum over a plumbing model counted each length twice. The converter, the parameter index, and the properties tool now read each (set, name, value) once per element and keep differing values.
 2. **Material layers were invisible.** A material's name was read from the wrong attribute, layer thickness was dropped, constituents were excluded, the quantity set in which Revit reference-view exports keep each layer's width was not parsed, and the STEP `\X\` escape was not decoded. Layers and constituents now carry thickness, material, set, and position.
 3. **The guide let the model add.** Two answers listed the right areas and then summed them wrongly in prose. The guide now says every total is computed in SQL, which is the rule Section 5.2 states.
 
-After the fixes, the eight questions those defects had failed were rerun: four correct, two wrong for reasons of their own, two awaiting the author's reading of the ground truth. The paper draws two conclusions. First, an external question set finds defects an internal one cannot, because the internal set is written by the people who know where the data is. Second, the defects were all in how the file was read into tables, which is the layer this paper recommends putting between the model and the agent, and which is therefore the layer to test.
+After the fixes, the eight questions those defects had failed were rerun: four correct, two wrong for reasons of their own, two awaiting the author's reading of the ground truth. The paper draws two conclusions. First, an external question set finds defects an internal one cannot, because the internal set is written by the people who know where the data is. Second, two of the three defects were in how the file was read into tables, which is the layer this paper recommends putting between the model and the agent, and which is therefore the layer to test; the third became the rule in Section 5.2 that every total is computed in SQL.
 
 ### 6.4 Door clearance: from code text to verdicts
 
