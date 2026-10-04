@@ -50,9 +50,9 @@ An analytics value is more than a number. To be reusable it needs the element or
 
 ### 3.2 The twelve mechanisms
 
-The options brief [21] examines twelve mechanisms, summarised and scored in Table 1.
+The options brief [21] examines twelve mechanisms. Table 1 scores ten rows: mechanisms 7 and 8 of the brief, library references and classification references, behave alike and share a row, and mechanism 11, visualisation metadata such as colour and legend properties, is a presentation hint rather than a store and is not scored.
 
-**Table 1** Twelve mechanisms within IFC 4.3 for carrying analytics, scored on four properties.
+**Table 1** The mechanisms within IFC 4.3 for carrying analytics, scored on four properties (ten rows for the brief's twelve mechanisms).
 
 | Mechanism | IFC basis | Portability | Queryability | Interop. | Scalability |
 |---|---|---|---|---|---|
