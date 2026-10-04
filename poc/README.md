@@ -82,5 +82,27 @@ Q5, Q7, and Q8 is `results/transcript-mcp-replay.md`. The unattended language-mo
 `bimopenmcp-ifc-ask` with `samples/nrc/questions.txt` (the eight questions verbatim) and is
 recorded as `results/transcript-unattended.md` and `results/results-unattended.json`.
 
-See [../paper/06-proof-of-concept.md](../paper/06-proof-of-concept.md) for the write-up and
+## Unattended runs with Claude, scored
+
+`results/unattended/<date>/` holds the runs of the eight questions made with the toolkit's
+`bimopenmcp-ifc-ask` runner through the Claude Code command line (model and effort in each
+transcript's header), one fresh conversation per question, every tool call recorded. Files named
+`new-run<n>` ran over the toolkit's regenerated `samples/nrc/duplex-enriched.ifc` (summary sets
+under their own names, version 2 of the paper); files named `old-run<n>` ran over this folder's
+`data/duplex-enriched.ifc` (version 1, aggregates under the element names) as a control.
+
+```bash
+dotnet run --project bim-open-toolkit/src/studio/BimOpenMcp.Ifc.Ask -c Release -- --model bim-open-toolkit/samples/nrc/duplex-enriched.ifc --questions bim-open-toolkit/samples/nrc/questions.txt --out poc/results/unattended/<date>/new-run1.md --results poc/results/unattended/<date>/new-run1.json
+```
+
+`score_unattended.py` scores any number of result files against `results/expected_answers.json`
+with one deterministic rule per question and prints the rule beside each verdict; `--markdown`
+writes the table. The paper's Table 4 (version 2) is its output over the committed runs:
+
+```bash
+python poc/score_unattended.py poc/results/unattended/2026-10-04/*.json --markdown poc/results/unattended/2026-10-04/scores.md
+```
+
+See [../paper/paper-v2.md](../paper/paper-v2.md) for the version 2 write-up,
+[../paper/06-proof-of-concept.md](../paper/06-proof-of-concept.md) for the version 1 write-up and
 [../paper/poc-gap-report.md](../paper/poc-gap-report.md) for what did not work or was not done.
