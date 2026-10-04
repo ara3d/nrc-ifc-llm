@@ -3,3 +3,6 @@
 poc/EnrichIfc/bin/
 poc/EnrichIfc/obj/
 poc/store/
+
+# Output of the local checks (README, "Checks")
+/out/

@@ -9,3 +9,10 @@ The toolkit has submodules of its own (`bim-open-toolkit/submodules/gratify` and
 - Sample models: `data/`, `IFC-Test-Kit/`, and `poc/data/duplex-enriched.ifc` (duplex with synthetic carbon property sets).
 - The paper is in `paper/` (start at `paper/README.md`); the proof of concept and how to reproduce it are in `poc/README.md`.
 - Analytics values in `poc/` are synthetic. Say so when quoting them.
+
+## Checks
+
+- `REQUIREMENTS.md` is the requirements table; update a row's status and check when work changes it.
+- CI is `.github/workflows/check.yml`; the README's "Checks" section has the local commands.
+- After editing documentation that names a toolkit path, run `python checks/check_toolkit_paths.py`. A path the pinned toolkit lacks fails it; list a deliberate exception in `checks/known-missing-paths.txt` with the reason.
+- After changing `poc/data/` or `poc/expected_answers.py`, run `python poc/check_answers.py`.

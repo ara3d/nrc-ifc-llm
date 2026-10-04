@@ -38,6 +38,22 @@ The repository is set up for [Claude Code](https://claude.com/claude-code). Clau
 
 The carbon values in `poc/` are synthetic, made up for demonstration.
 
+## Checks
+
+[REQUIREMENTS.md](REQUIREMENTS.md) lists every requirement on this repository (the statement of work, the paper's handoff items, and the toolkit's "reproduce the paper" workflow), whether it is met, and what checks it.
+
+[.github/workflows/check.yml](.github/workflows/check.yml) runs on every push and pull request, in three jobs: `paths` (every path into `bim-open-toolkit/` exists at the pinned commit), `poc` (the enrichment and the eight answers), and `toolkit-nrc` (the toolkit's NRC answer tests). To run the same checks locally from the repository root, with Python 3, the .NET 8 SDK, and the submodules fetched recursively:
+
+```bash
+python checks/check_toolkit_paths.py
+dotnet run --project poc/EnrichIfc -c Release -- IFC-Test-Kit/duplex.ifc poc/data/psets_to_write.csv out/duplex-enriched.ifc out/enrich-report.json
+python poc/check_enriched_ifc.py IFC-Test-Kit/duplex.ifc out/duplex-enriched.ifc poc/data/psets_to_write.csv
+python poc/check_answers.py
+dotnet test bim-open-toolkit/tests/flow/BimOpenFlow.NrcWorkflows.Tests -c Release
+```
+
+The last command builds the toolkit projects the tests need: about 2 minutes on a CI runner, 14 minutes on the first local run with an empty build cache. A reference the pinned toolkit no longer has, but which is not fixed yet, goes in `checks/known-missing-paths.txt` with its reason.
+
 ## Technical paper
 
 - [paper/](paper/README.md) — the technical paper (deliverable D3), one Markdown file per section, with a status table showing which results are executed and which are planned.
