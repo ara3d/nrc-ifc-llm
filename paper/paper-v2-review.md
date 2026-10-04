@@ -81,3 +81,12 @@ Under-sold: the control experiment itself. Running the same model and guide over
 - Section 6.2, paragraphs on the version 1 control (111,589 over 223 entities; building and storeys ranked as elements). Concrete, quoted from transcripts, and the best evidence for the contract.
 - Section 6.3, the three defects and the first conclusion ("an external question set finds defects an internal one cannot, because the internal set is written by the people who know where the data is").
 - Section 5.1, the fifth principle ("The file tells the agent how to read it"), and Section 7, "Of the measurements", which names the agent-judged verdicts and the one-model-family limit without hedging.
+
+## 6 Disposition, 2026-10-04
+
+Defects 1 to 12 and design notes 2, 3, 6, and 7 were applied, one commit each, in `ec59c30` to `b4f4db2`; the five contributions became four and the control experiment is named in Section 1.1 and the abstract. Deferred, as design notes the author may take up:
+
+- Note 4: the twelve-request dataflow figure in Section 5.3 cites no evidence file in this repository; the transcript lives in the toolkit's `docs/bim-flow-mcp-demo.md`. Cite it or cut the numbers.
+- Note 5: Section 2's last paragraph lists the five repositories and the four graph operations; two sentences would do, with reference [8] carrying the rest.
+- Note 8: Section 8 could be a table (piece, done-when, depends on).
+- Note 9: Figures 1 and 2 are 2026-09-18 captures of the version 1 file; one run of `npm run nrc:walkthrough:duplex --prefix bimopenflow/web` in the toolkit regenerates them from the version 2 file and removes a sentence from Section 7.
