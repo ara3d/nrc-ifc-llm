@@ -1,0 +1,87 @@
+# Checks for the paper and its proof of concept. REQUIREMENTS.md names the requirement each
+# step checks; README.md ("Checks") says how to run the same commands locally.
+#
+# Three jobs run in parallel so each stays near the 15-minute budget:
+#   paths          every path this repository names into bim-open-toolkit exists at the pin
+#   poc            EnrichIfc rewrites the enriched Duplex, which differs from the source only
+#                  by the new property sets, and the eight answers hold over this data
+#   toolkit-nrc    the toolkit's NRC answer tests, run from the pinned submodule exactly as the
+#                  pin's own CI ran them (.github/workflows/build.yml in bim-open-toolkit)
+name: check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  paths:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Toolkit paths exist at the pinned commit
+        run: python3 checks/check_toolkit_paths.py --verbose
+
+  poc:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-poc-${{ runner.os }}-${{ hashFiles('poc/**/*.csproj', 'bim-open-toolkit/**/*.csproj', 'bim-open-toolkit/**/Directory.Build.*') }}
+          restore-keys: nuget-poc-${{ runner.os }}-
+      - name: Enrich the public Duplex model with EnrichIfc
+        shell: bash
+        run: >
+          dotnet run --project poc/EnrichIfc -c Release --
+          IFC-Test-Kit/duplex.ifc poc/data/psets_to_write.csv
+          "$RUNNER_TEMP/duplex-enriched.ifc" "$RUNNER_TEMP/enrich-report.json"
+      - name: The enriched IFC differs from the source only by the new property sets
+        shell: bash
+        run: |
+          sha=$(python -c "import json; print(json.load(open('poc/results/enrich-report.json'))['targetSha256'])")
+          python poc/check_enriched_ifc.py IFC-Test-Kit/duplex.ifc "$RUNNER_TEMP/duplex-enriched.ifc" poc/data/psets_to_write.csv --sha256 "$sha"
+      - name: The paper's eight answers hold over this repository's data
+        run: python poc/check_answers.py
+
+  toolkit-nrc:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-toolkit-${{ runner.os }}-${{ hashFiles('bim-open-toolkit/**/*.csproj', 'bim-open-toolkit/**/Directory.Build.*') }}
+          restore-keys: nuget-toolkit-${{ runner.os }}-
+      # The pin's CI builds the solution, then runs this project with no filter; building only
+      # this project and its references is the same test with less to compile.
+      - name: Toolkit NRC answer tests (BimOpenFlow.NrcWorkflows.Tests)
+        run: dotnet test bim-open-toolkit/tests/flow/BimOpenFlow.NrcWorkflows.Tests -c Release

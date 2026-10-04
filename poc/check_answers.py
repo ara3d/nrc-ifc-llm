@@ -57,8 +57,14 @@ def check_expected_file(expected: dict) -> None:
 def check_toolkit_copies() -> None:
     for ours, theirs in SHARED_FILES.items():
         other = TOOLKIT_SAMPLES / theirs
-        same = other.exists() and (ROOT / ours).read_bytes() == other.read_bytes()
+        same = other.exists() and _content(ROOT / ours) == _content(other)
         check(f"toolkit samples/nrc/{theirs} is byte-identical to {ours}", same)
+
+
+def _content(path: Path) -> bytes:
+    """File bytes; for a CSV, with line endings normalised, since a checkout may convert them."""
+    data = path.read_bytes()
+    return data.replace(b"\r\n", b"\n") if path.suffix == ".csv" else data
 
 
 def check_from_ifc(ifc: Path, expected: dict) -> None:
