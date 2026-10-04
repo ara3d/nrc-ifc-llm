@@ -81,7 +81,7 @@ Custom property sets are the simplest and most widely readable, in that almost e
 
 The defect version 1 reported is worth restating, because the fix is a design rule and not a rename. The storey and building aggregates were written with the element sets' names and the element properties' names. A reader who knew the convention excluded the container classes in every query; an agent that did not know it summed a storey's total together with the storey's elements and doubled every figure (Section 6.2). The hand-driven session avoided the error because the author carried the convention in his head, which is exactly the kind of knowledge a file should not require of its reader.
 
-The contract now has one source, `nrc-metrics.csv`, with one row per metric and level. Table 2 shows it in full; the proof of concept has fifteen rows.
+The contract now has one source, `nrc-metrics.csv`, with one row per metric and level. Table 2 shows the seven columns the derivations below use; the file has three more (`ValueType`, `Description`, and `Decimals`, the rounding of a rolled-up value). The proof of concept has fifteen rows.
 
 **Table 2** The metric dictionary, `nrc-metrics.csv`, version `NRC-metrics-0.2`. Every value is synthetic.
 
