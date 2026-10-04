@@ -2,7 +2,7 @@
 
 One table of what this repository has to deliver, where each requirement comes from, whether
 it is met today, and what checks it. Status was assessed on 2026-10-03 against this
-repository's `main` and the BIM Open Toolkit submodule pinned at `34499e3`.
+repository's `main` and the BIM Open Toolkit submodule pinned at tag `v0.1` (`59aeb6d`); the pin moved from `34499e3` on 2026-10-04.
 
 Sources:
 
@@ -23,7 +23,7 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 |---|---|---|---|
 | SOW-1 | An options analysis of storing and displaying analytics at component, zone, storey and building level, with a comparison matrix and recommendations (SOW §2.1, §2.2, D1, §6 first criterion). | Partly. Paper §3 (storage, matrix in §3.3, recommendation in §3.6) and §4 (display, recommendation in §4.4) cover it. D1 asks for a separate concise brief; none exists outside the paper. | None. |
 | SOW-2 | The proof of concept includes an IFC model enriched with analytics through the recommended storage approach (SOW §3.3, D2). | Met. `poc/data/duplex-enriched.ifc`: 664 property sets and 2,438 values written into `IFC-Test-Kit/duplex.ifc` by `poc/EnrichIfc`. | `poc` (see W6-4). |
-| SOW-3 | An agent based on a large language model (LLM) answers natural-language questions about the stored carbon, energy and other analytics at component and building level (SOW §3.3, D2, §6 second criterion). | Partly. The unattended `gpt-5` run answered 4 of the 8 questions correctly, 1 partly and 3 wrongly (paper §6.2); the earlier session with hand-chosen tool calls matched 7 of 8. No run with Claude is recorded. | By hand, last run 2026-09-18 (`poc/results/results-unattended.json`). `poc` re-reads the recorded Q2, Q4 and Q6 answers; it calls no model. |
+| SOW-3 | An agent based on a large language model (LLM) answers natural-language questions about the stored carbon, energy and other analytics at component and building level (SOW §3.3, D2, §6 second criterion). | Met for the regenerated file. Claude Haiku 4.5 through the Claude Code command line, unattended, answered 7 of 8 in each of three runs over the toolkit's `samples/nrc/duplex-enriched.ifc` (paper v2 §6.2, Table 4); the miss is Q7 read as the Roof storey or the ROOF slab. Control runs over the version 1 file: 5, 6, 4 of 8, the misses being the aggregate-naming defect. Earlier: `gpt-5` 4 of 8 (2026-09-18), hand-chosen tool calls 7 of 8. No zone-level question exists. | By hand, last run 2026-10-04 (`poc/results/unattended/2026-10-04/`, scored by `poc/score_unattended.py`). `poc` re-reads the recorded gpt-5 Q2, Q4 and Q6 answers; it calls no model. |
 | SOW-4 | A lightweight visualisation colours the model by analytics value (SOW §3.3, D2). | Met. Figures 5 to 8 in `paper/figures/`. | By hand, last run 2026-09-18 (`poc/results/walkthrough-index.md`); `toolkit-nrc` asserts the row and colour counts behind each Duplex figure (`FigureGraphTests`). |
 | SOW-5 | The proof-of-concept package carries its source code and documentation (SOW D2). | Met. `poc/README.md` lists every file and the commands that regenerate them. | `paths` (every toolkit path the documentation names exists at the pin) and `poc` (the documented commands run). |
 | SOW-6 | The paper covers storage, display, the role of LLM and agent layers, proof-of-concept results, knowledge graphs and world-model substrates as extensions, and a roadmap for an open bidirectional viewer (SOW §3.4). | Met. Paper §3, §4, §5, §6, §8.3 and §8.4, §9. | None. |
@@ -35,7 +35,7 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 | ID | Requirement and source | Status | Check |
 |---|---|---|---|
 | M1 | A 3D colour-coded figure of the public Duplex model (handoff-needs.md, M1). | Met 2026-09-18: Figures 5 to 10 in `paper/figures/`, cited in §4. | Same as SOW-4. |
-| M2 | An unattended LLM run of the eight questions, with model name and per-question match in §6.2 (handoff-needs.md, M2). | Met: `gpt-5`, 2026-09-18, toolkit `66df499`; the result is SOW-3's 4 of 8. | By hand, last run 2026-09-18; `poc` checks the recorded Q2, Q4 and Q6 answers. |
+| M2 | An unattended LLM run of the eight questions, with model name and per-question match in §6.2 (handoff-needs.md, M2). | Met: `gpt-5`, 2026-09-18, toolkit `66df499` (4 of 8); Claude Haiku 4.5, 2026-10-04, toolkit `v0.1`, three runs on each file, per-question table in paper v2 Table 4. | By hand, last run 2026-10-04; `poc` checks the recorded gpt-5 Q2, Q4 and Q6 answers. |
 | M3 | Every number in the abstract and every figure caption is labelled synthetic, or the run is repeated on real NRC data (handoff-needs.md, M3). | Partly. The abstract (`paper/00-abstract.md` line 36) and the captions of Figures 2, 5 and 6 say synthetic; no one has checked every caption, and no real dataset has arrived. | None. |
 | M4 | Viewer comparison in §4.3 with at least three rows tested; covers the tools SOW §3.2 names (handoff-needs.md, M4). | Partly. One row (the toolkit's viewer) is filled; seven rows still read "to test". | None. |
 | M5 | Editorial pass: Q2 narrative consistent in §6.2 and §7.1, figures cited in order, no "will be reported in the next revision", real citations for the Duplex model and the National Building Code (NBC) (handoff-needs.md, M5). | Partly. References 6 (NBC 2020) and 18 (Duplex) exist. `paper/10-conclusion.md` line 29 still says "will be reported in the next revision". Appendix C's client configuration runs the server project by its old name, `Ara3D.Ifc.Mcp`, which the pinned toolkit no longer has (it is `BimOpenMcp.Ifc` under `deps/bim-open-data/src/mcp/`). | `paths` lists the Appendix C path as known missing (`checks/known-missing-paths.txt`); the rest none. |
@@ -57,15 +57,15 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 | W6-2 | A push that changes one of the paper's eight answers fails CI (PROJECT.md, workflow 6, Done). | Met from 2026-10-03. The toolkit's `CsvGraphTests` assert all eight (Q1 to Q8) over its copies of the analytics CSVs; `check_answers.py` asserts `expected_answers.json` against this repository's CSV for all eight, that the toolkit's copies equal this repository's files, and Q2, Q4 and Q6 from the property sets inside the enriched IFC. | `toolkit-nrc` and `poc`. |
 | W6-3 | The walkthrough index lists every figure or the reason it was skipped (PROJECT.md, workflow 6, Done). | Partly. The copy here lists the ten Duplex figures; it has no Snowdon section and no skip reasons. | None. |
 | W6-4 | The enriched IFC differs from the original only in the new property sets (PROJECT.md, workflow 6, Done). | Met. A fresh `EnrichIfc` run inserts one block of 3,766 property-set entities before `ENDSEC`, keeps every source byte, matches `psets_to_write.csv` value for value, and has the SHA-256 recorded in `poc/results/enrich-report.json`. | `poc` (`poc/check_enriched_ifc.py`). |
-| W6-5 | The write-back happens from a Run (PROJECT.md, workflow 6). | Partly. The toolkit's `nrc-enrich-run` writes from a Run only inside its tests. The paper's file still comes from the `EnrichIfc` console program, and the two files differ: the toolkit's run writes 2,441 values, with the storey and building totals under their own names; the paper's file has 2,438. | `toolkit-nrc` (`RollupGraphTests.EnrichRun_WritesTheCommittedFileByteForByte`, for the toolkit's file only). |
+| W6-5 | The write-back happens from a Run (PROJECT.md, workflow 6). | Met for paper v2, which cites the toolkit's `samples/nrc/duplex-enriched.ifc` (2,441 values in 659 sets, written by a Run of `nrc-enrich-run`, summary sets under their own names) and uses it for the Claude runs. `poc/data/duplex-enriched.ifc` (2,438 values, `EnrichIfc` console program) is kept as the version 1 file and the control. | `toolkit-nrc` (`RollupGraphTests.EnrichRun_WritesTheCommittedFileByteForByte`). |
 | W6-6 | Every path this repository names into the toolkit exists at the pinned commit, so the documentation cannot drift from the code unnoticed (owner, 2026-10-03, for workflow 6's cost of failure). | Met, with five known exceptions listed in `checks/known-missing-paths.txt` (Appendix C's old server project path in four copies of the paper, and the old `AskAgent.cs` path in `paper/handoff-needs.md`). | `paths` (`checks/check_toolkit_paths.py`). |
 
 ## Summary
 
 | Status | Count | IDs |
 |---|---|---|
-| Met | 13 | SOW-2, SOW-4, SOW-5, SOW-6, M1, M2, I2, I3, I5, I9, W6-2, W6-4, W6-6 |
-| Partly | 10 | SOW-1, SOW-3, M3, M4, M5, I1, I8, W6-1, W6-3, W6-5 |
+| Met | 15 | SOW-2, SOW-3, SOW-4, SOW-5, SOW-6, M1, M2, I2, I3, I5, I9, W6-2, W6-4, W6-5, W6-6 |
+| Partly | 8 | SOW-1, M3, M4, M5, I1, I8, W6-1, W6-3 |
 | Not met | 5 | SOW-7, SOW-8, I4, I6, I7 |
 
 Rows with no check: SOW-1, SOW-6, SOW-7, SOW-8, M3, M4, I1, I4, I6, I7, I8, I9 (none in this

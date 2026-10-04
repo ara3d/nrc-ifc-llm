@@ -1,6 +1,15 @@
 # Technical Paper: Storing, Displaying, and Querying Building Analytics on IFC Models
 
-_Deliverable D3 of the Studio 2.5 / NRC engagement. Initial draft, 2026-09-16._
+_Deliverable D3 of the Studio 2.5 / NRC engagement. Initial draft, 2026-09-16; version 2, 2026-10-04._
+
+## Versions
+
+| File | What it is |
+|---|---|
+| [paper-v2.md](paper-v2.md) | **Version 2** (2026-10-04): the analytics contract with the metric dictionary as its single source, the enrichment as a reproducible dataflow run, the unattended Claude reruns on the regenerated file against a control on the version 1 file, the IFC-Bench measurement, and the reproducibility apparatus. Cites the toolkit at its tagged release `v0.1`. Start here. |
+| [condensed-paper.md](condensed-paper.md) | Version 1 condensed to about ten pages (2026-09-19), reviewed in [condensed-paper-review.md](condensed-paper-review.md). |
+| [nrc-style-paper.md](nrc-style-paper.md) | Version 1 in NRC technical-report style, assembled from `nrc-style/` by `build_nrc_style_pdf.py`. |
+| `00-abstract.md` to `references.md` | Version 1, one file per section (the table below), assembled into `paper.md` by the command at the end of this file. |
 
 This folder holds the paper as one Markdown file per section so that sections can be
 drafted, reviewed, and revised independently. Read the sections in the order below.
