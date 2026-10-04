@@ -24,11 +24,11 @@ Version 1 of this paper (2026-09-19) made the storage recommendation, ran the pr
 
 - The storage recommendation is restated as an **analytics contract** centred on a metric dictionary (Section 3.4). Summary sets have their own names and their own property names, and are computed by a graph from the element values rather than supplied by the data generator. A test asserts the defect's absence: summing the element operational-carbon property over every entity that carries it, with no class filter, returns the element total.
 - The enrichment is **a dataflow run**, not a console program: one graph reads the element values and the dictionary, computes the summary rows, and writes 2,441 values into a copy of the model; a test asserts that a fresh run reproduces the committed file byte for byte (Section 3.5).
-- The eight questions were **rerun unattended with Claude Haiku 4.5** through the Claude Code command line, several times each, on the regenerated file and, as a control, on the version 1 file (Section 6.2). The comparator that scores them is a committed script.
+- The eight questions were **rerun unattended with Claude Haiku 4.5** through the Claude Code command line, three times each, on the regenerated file and, as a control, on the version 1 file (Section 6.2). The comparator that scores them is a committed script.
 - The tool surface was **measured on an external benchmark**, IFC-Bench [35], 100 questions over public building models from 16 projects, with ground truth written by someone else (Section 6.3). Three toolkit defects the wrong answers exposed were fixed.
 - The paper's numbers are **guarded by continuous integration** in two repositories: the toolkit's tests assert the eight answers and the figure counts on every push, and this paper's repository checks the enrichment, the answers, and every path it names into the toolkit (Section 6.5).
 
-Five contributions are offered. The first is a comparison of twelve storage mechanisms available within IFC 4.3 and an analytics contract, dictionary first, that makes aggregates derived rather than declared (Section 3). The second is an argument, supported by an implementation and two measurements, that the language model should be placed behind a small typed read-only tool surface over a columnar copy of the model rather than reading the IFC file (Sections 5 and 6). The third is a byte-exact, reproducible write-back path, run as a dataflow graph, by which analytics, verdicts, and human overrides may be added to a client's file without altering any other byte (Sections 3.5 and 6.4). The fourth is a reproducibility apparatus for a research paper whose claims are software behaviour: a tagged tested set of the toolkit and its eight pinned dependencies, tests that assert the published numbers, a check that fails when the paper's text drifts from the code, and a costed list of what remains (Sections 6.5 and 8).
+Four contributions are offered. The first is a comparison of twelve storage mechanisms available within IFC 4.3 and an analytics contract, dictionary first, that makes aggregates derived rather than declared, together with a control experiment in which the same model and guide run over the version 1 and version 2 files and the version 1 misses fall exactly where the contract predicts (Sections 3 and 6.2). The second is an argument, supported by an implementation and two measurements, that the language model should be placed behind a small typed read-only tool surface over a columnar copy of the model rather than reading the IFC file (Sections 5 and 6). The third is a byte-exact, reproducible write-back path by which analytics are added to a client's file from a dataflow run, and verdicts and human overrides by the same library, without altering any other byte (Sections 3.5 and 6.4). The fourth is a reproducibility apparatus for a research paper whose claims are software behaviour: a tagged tested set of the toolkit and its eight pinned dependencies, tests that assert the published numbers, a check that fails when the paper's text drifts from the code, and a costed list of what remains (Sections 6.5 and 8).
 
 ## 2 Background
 
@@ -79,7 +79,7 @@ Custom property sets are the simplest and most widely readable, in that almost e
 
 ### 3.4 The dictionary as the single source
 
-The defect version 1 reported is worth restating, because the fix is a design rule and not a rename. The storey and building aggregates were written with the element sets' names and the element properties' names. A reader who knew the convention excluded the container classes in every query; an agent that did not know it summed a storey's total together with the storey's elements and doubled every figure (Section 6.2). The hand-driven session avoided the error because the author carried the convention in his head, which is exactly the kind of knowledge a file should not require of its reader.
+The fix for the defect version 1 reported is a design rule, not a rename. The storey and building aggregates were written with the element sets' names and the element properties' names. A reader who knew the convention excluded the container classes in every query; an agent that did not know it summed a storey's total together with the storey's elements and doubled every figure (Section 6.2). The hand-driven session avoided the error because the author carried the convention in his head, which is exactly the kind of knowledge a file should not require of its reader.
 
 The contract now has one source, `nrc-metrics.csv`, with one row per metric and level. Table 2 shows the seven columns the derivations below use; the file has three more (`ValueType`, `Description`, and `Decimals`, the rounding of a rolled-up value). The proof of concept has fifteen rows.
 
@@ -127,11 +127,11 @@ In version 1 a console program called this library over a CSV of rows. In versio
 | Property values | 2,438 | 2,441 |
 | Entities enriched | 224 (218 elements, 4 storeys, building, project) | 224 |
 | Aggregates | element set and property names, on storeys and the building | `Pset_NRCStoreySummary`, `Pset_NRCBuildingSummary`, `Total*` and `Mean*` properties, plus `ElementCount` |
-| Aggregates supplied by | the data generator | computed by the `nrc-rollup` graph from element values |
+| Aggregates computed by | the generator script, passed to the writer as rows | the `nrc-rollup` graph inside the run, asserted by a test |
 | Reproducibility | diff exact, reversible, second run identical (checked by script in CI) | a test asserts a fresh run equals the committed file byte for byte |
 | Metric dictionary | a table in the paper | `nrc-metrics.csv`, named by the file's provenance set, served to the agent as `MetricCatalog` |
 
-The practical consequence for NRC is unchanged and stronger: an enriched file can be returned to a model author with a diff listing the additions and nothing else, the author can recover the original exactly, and anyone with the model, the element table, and the dictionary can regenerate the enriched file and get the same bytes.
+The practical consequence for NRC: an enriched file can be returned to a model author with a diff listing the additions and nothing else, the author can recover the original exactly, and anyone with the model, the element table, and the dictionary can regenerate the enriched file and get the same bytes.
 
 ### 3.6 Recommendation
 
@@ -295,7 +295,7 @@ A paper whose claims are software behaviour drifts from the software unless some
 - **The text is checked against the code.** A script scans every Markdown, script, and configuration file in this paper's repository for paths into the toolkit and fails when one does not exist at the pinned commit, resolving `deps/<name>/` paths through the toolkit's dependency pins. When the toolkit split into separate repositories on 2026-10-03, this check named every reference that had to move. Four references in version 1 files to the IFC MCP server's pre-split name are recorded exceptions awaiting the editorial pass.
 - **Runs are recorded, not described.** Every unattended run writes a Markdown transcript with every tool call and its result, and a JSON file the scorer reads. The transcripts in this paper's repository are the evidence for Table 4, and the scorer that produced the table is committed beside them.
 
-A push that changes one of the eight answers fails continuous integration in both repositories. That is the property version 1 asked for and version 2 has.
+A push that changes one of the eight answers fails continuous integration in both repositories, which is the property version 1 asked for.
 
 ### 6.6 What the studies show together
 
