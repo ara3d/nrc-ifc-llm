@@ -315,7 +315,7 @@ The door-clearance study exercises every part of the recommended architecture ex
 
 ## 8 Future directions
 
-The toolkit's own proposal for what it still owes this work [36] lists eight pieces; four have landed since it was written (the analytics contract and rollup, the test-kit join template, the deterministic answer tests, and the external benchmark), and the rest are in the order below.
+The toolkit's own proposal for what it still owes this work [36] lists eight pieces, P1 to P8. Since it was written, P1, the analytics contract and rollup, is complete, and the template join graph of P5 exists; P4 asked for sixteen questions in five runs each and this paper reports eight in three; the external benchmark of Section 6.3 was outside the proposal. The rest are in the order below.
 
 **Space and zone level.** Views `SpaceOfElement` and `ZoneOfSpace` beside the storey view; a zone writer beside the property-set writer; a synthetic zone table for the Duplex grouping its 21 spaces; zone-level operational values in the data; and a ninth question with a known answer, "which zone has the highest energy use intensity".
 
