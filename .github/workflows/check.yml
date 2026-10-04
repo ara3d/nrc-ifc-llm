@@ -29,7 +29,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
+      # deps/<name>/ paths are looked up in the dependency checkouts deps.mjs makes.
+      - name: Fetch the toolkit's dependencies at their pinned commits
+        run: node deps.mjs
+        working-directory: bim-open-toolkit
       - name: Toolkit paths exist at the pinned commit
         run: python3 checks/check_toolkit_paths.py --verbose
 
@@ -39,7 +43,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
+      - name: Fetch the toolkit's dependencies at their pinned commits
+        run: node deps.mjs
+        working-directory: bim-open-toolkit
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -70,7 +77,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
+      - name: Fetch the toolkit's dependencies at their pinned commits
+        run: node deps.mjs
+        working-directory: bim-open-toolkit
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -86,7 +96,7 @@ jobs:
       - name: Toolkit NRC answer tests (BimOpenFlow.NrcWorkflows.Tests)
         shell: bash
         run: >
-          dotnet test bim-open-toolkit/tests/flow/BimOpenFlow.NrcWorkflows.Tests -c Release
+          dotnet test bim-open-toolkit/tests/studio/BimOpenFlow.NrcWorkflows.Tests -c Release
           --logger "trx;LogFileName=nrc.trx" --results-directory "$RUNNER_TEMP/test-results"
       # The counts as an annotation on the run, readable without downloading the log.
       - name: Report the test counts

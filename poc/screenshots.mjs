@@ -1,11 +1,11 @@
 // Captures figures for the paper from the BimOpenFlow web editor's 3D page.
 // Requires the host (port 5214) and web editor (port 5300) to be running with the
-// poc/store analysis store, and the toolkit's Playwright at ../bim-open-toolkit/viz.
+// poc/store analysis store, and the toolkit's Playwright at ../bim-open-toolkit/deps/bim-open-viewer.
 //
 //   node poc/screenshots.mjs
 //
 // Writes PNGs to paper/figures/ and prints the pane status text for each capture.
-import { chromium } from "../../bim-open-toolkit/viz/node_modules/playwright-core/index.mjs";
+import { chromium } from "../../bim-open-toolkit/deps/bim-open-viewer/node_modules/playwright-core/index.mjs";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 

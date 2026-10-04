@@ -32,8 +32,8 @@ levels.
 | Launch entries for host and web editor | `.claude/launch.json` (host on 5214, web on 5300) |
 | Earlier executed evidence (door clearance) | `door-clearance-demo.md`, `bos-validation-evidence.md` |
 
-The toolkit's layout as of 2026-09-17: `src/data` (IFC loader, byte-exact editing, BOS),
-`src/flow` (dataflow host and node packs), `src/mcp/BimOpenMcp.Ifc` (the IFC MCP server),
+The toolkit's layout as of 2026-10-04 (tag `v0.1`, after the repository split): `deps/bim-open-data/src/data` (IFC loader, byte-exact editing, BOS),
+`deps/bim-open-flow/src/flow` (dataflow host and node packs), `deps/bim-open-data/src/mcp/BimOpenMcp.Ifc` (the IFC MCP server),
 `viz` (web viewer packages, with Playwright under `viz/node_modules/playwright-core`),
 `bimopenflow/web` (the editor). Everything that touches IFC targets `net8.0-windows`.
 
@@ -53,10 +53,10 @@ graphs exist and the host accepts them; the viewer fails to load `duplex.ifc`.
 - Symptom: the 3D pane shows `The BOS archive could not be prepared: Invalid BFAST transform 495`
   for `duplex.ifc` and for `duplex-enriched.ifc`. Screenshot in
   `paper/figures/gap-3d-pane-duplex-error.png`.
-- Where it is thrown: `bim-open-toolkit/viz/packages/loaders/src/bfast-loader.ts` line 36,
+- Where it is thrown: `bim-open-toolkit/deps/bim-open-viewer/packages/loaders/src/bfast-loader.ts` line 36,
   when any of the 16 floats of an instance transform is not finite.
 - Where the bad value comes from: the host's IFC-to-BOS geometry conversion behind
-  `GET /api/models/{id}/bos` in `src/flow/BimOpenFlow.Host.Api/ModelBytesEndpoint.cs`. Find
+  `GET /api/models/{id}/bos` in `deps/bim-open-flow/src/flow/BimOpenFlow.Host.Api/ModelBytesEndpoint.cs`. Find
   which Duplex instance produces the NaN or infinity (instance index 495 in the converted
   archive; the index changes if you exclude openings) and fix the converter. Also make the
   loader skip or flag a bad instance rather than abort the model, so one bad transform can
@@ -88,10 +88,10 @@ The transcript in `poc/results/transcript.md` was produced by the author choosin
 by hand. The acceptance criterion says questions are answered by an LLM-based agent.
 
 - Start the server: from the toolkit root,
-  `dotnet run --project src/mcp/BimOpenMcp.Ifc -- --http 8766` (or stdio for a chat client).
+  `dotnet run --project deps/bim-open-data/src/mcp/BimOpenMcp.Ifc -- --http 8766` (or stdio for a chat client).
 - Register it with any MCP client that runs a model unattended (Claude Code with an
   `mcpServers` entry, or the toolkit's Ask loop pattern in
-  `src/studio/BimOpenFlow.Studio/AskAgent.cs` adapted to this server).
+  `deps/bim-open-flow/src/studio/BimOpenFlow.Ask/AskAgent.cs` adapted to this server).
 - Ask the eight questions in `paper/06-proof-of-concept.md` section 6.2 verbatim, one at a
   time, against `poc/data/duplex-enriched.ifc`. Save the raw transcript as
   `poc/results/transcript-unattended.md`.
@@ -143,7 +143,7 @@ These go beyond the acceptance criteria. Each is independent; pick by value.
 `poc/EnrichIfc/Program.cs` and re-verifying. The original notes follow.
 
 Section 3.4 recommends it; the run only wrote the URI into a property set. Extend
-`IfcPropertySetBuilder` in `bim-open-toolkit/src/data/Ara3D.Ifc.Editing` with a method that
+`IfcPropertySetBuilder` in `bim-open-toolkit/deps/bim-open-data/src/data/Ara3D.Ifc.Editing` with a method that
 emits `IFCDOCUMENTINFORMATION`, `IFCDOCUMENTREFERENCE`, and `IFCRELASSOCIATESDOCUMENT` for a
 project or building entity, following the same deterministic-GUID pattern. Add it to
 `poc/EnrichIfc/Program.cs` and re-verify the diff, reversal, and hash. Cite the STEP lines in
@@ -155,7 +155,7 @@ Appendix A.
 `nrc-storey-of-element` and Figure 10 use it. The original notes follow.
 
 The Q2 miss came from walking `ContainedIn` but not `PartOf`. Add a `StoreyOfEntity` view in
-`bim-open-toolkit/src/mcp/BimOpenMcp.Ifc/IfcDuck.cs` (next to `EntityText`, `ParameterText`,
+`bim-open-toolkit/deps/bim-open-data/src/mcp/BimOpenMcp.Ifc/IfcDuck.cs` (next to `EntityText`, `ParameterText`,
 `RelationText`) that resolves every entity to its storey through both relations. Rerun Q2;
 the agent should then get 103 Level 1 elements and the expected ordering.
 
@@ -165,7 +165,7 @@ The node takes a `valueType` column; `nrc-enrich-run` is the one-graph enrichmen
 notes follow.
 
 The dataflow node writes every value as `IFCTEXT`
-(`bim-open-toolkit/src/flow/BimOpenFlow.Nodes.Effects/WritePsetsNode.cs`). Accept an optional
+(`bim-open-toolkit/deps/bim-open-flow/src/flow/BimOpenFlow.Nodes.Effects/WritePsetsNode.cs`). Accept an optional
 `valueType` column (`Real`, `Integer`, `Boolean`, `Label`, `Identifier`, `Text`) and map it
 to `IfcPropertyValue` factories, defaulting to `Text`. Then the whole enrichment can be one
 graph: `csv.read` of `poc/data/psets_to_write.csv` into `sink.writePsets`, run inside a Run,
@@ -190,7 +190,7 @@ with `sink.writePsets`. Section 5.5 currently asserts this composition; a figure
 ### I6. Mesh-accurate door clearance
 
 Wire `ifc_bounds` or `ifc_volume` into the DC-Z1 zone test in
-`bim-open-toolkit/tests/data/Ara3D.DoorClearance.Tests` so obstacles are tested by geometry
+`bim-open-toolkit/deps/bim-open-data/tests/data/Ara3D.DoorClearance.Tests` so obstacles are tested by geometry
 rather than placement origin. Report whether the two obstructed doors change.
 
 ### I7. A second public model
@@ -207,7 +207,7 @@ the demo. Worth a paragraph in Section 7 either way.
 ### I9. Fix the environment-dependent toolkit test (done)
 
 `BimSampleSeedingTests.EmptyStore_SeedsBimAndView3dSamples` in
-`bim-open-toolkit/tests/flow/BimOpenFlow.BimWorkflows.Tests` fails on any machine that has the
+`bim-open-toolkit/tests/studio/BimOpenFlow.BimWorkflows.Tests` fails on any machine that has the
 private Snowdon sample. Make it ignore the optional Snowdon entry.
 
 ## Rules for whoever does this

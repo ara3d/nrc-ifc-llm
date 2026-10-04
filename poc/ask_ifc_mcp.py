@@ -2,7 +2,8 @@
 to a Markdown transcript, so a question-answering session is recorded exactly as an MCP
 client would see it.
 
-Usage (server started with `dotnet run --project src/mcp/BimOpenMcp.Ifc -- --http 8766`):
+Usage (server started from the toolkit root with
+`dotnet run --project deps/bim-open-data/src/mcp/BimOpenMcp.Ifc -- --http 8766`):
 
     python poc/ask_ifc_mcp.py note "Q1: What is the total operational carbon for the building?"
     python poc/ask_ifc_mcp.py call ifc_sql '{"path": "...", "sql": "SELECT ..."}'

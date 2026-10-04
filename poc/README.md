@@ -31,7 +31,7 @@ from an analysis tool.
 
 ## Reproducing
 
-The toolkit is a git submodule at `bim-open-toolkit/`. After cloning this repository, run `git submodule update --init --recursive`.
+The toolkit is a git submodule at `bim-open-toolkit/`, pinned to its tagged tested set `v0.1`. After cloning this repository, run `git submodule update --init`, then `node deps.mjs` inside `bim-open-toolkit/` to fetch the repositories the toolkit is built from (the byte-exact writer and the IFC MCP server live in `deps/bim-open-data`).
 
 ```bash
 python poc/generate_synthetic_analytics.py
@@ -49,7 +49,7 @@ Start the IFC MCP server over HTTP from the toolkit root, then drive it with `as
 (see the docstring for the three sub-commands):
 
 ```bash
-dotnet run --project src/mcp/BimOpenMcp.Ifc -- --http 8766
+dotnet run --project deps/bim-open-data/src/mcp/BimOpenMcp.Ifc -- --http 8766
 ```
 
 The 3D screenshots use the toolkit's host in the `bim` profile with `poc/data` as a model

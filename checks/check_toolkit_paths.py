@@ -16,8 +16,9 @@ What counts as a toolkit path:
 
 Where a path is looked up: in the toolkit's file list at the pinned commit (the gitlink in
 this repository's index), so a working copy that has moved does not hide a broken path.
-Paths inside the toolkit's own submodules are looked up at their pinned commits when they are
-checked out. Build outputs cannot be in git, so they are checked through what produces them:
+A path under deps/<name>/ is looked up in that dependency's file list at the commit the
+toolkit's deps.json pins, using the checkout node deps.mjs made under bim-open-toolkit/deps/;
+when that checkout is absent the path is reported UNCHECKED, so run node deps.mjs first. Build outputs cannot be in git, so they are checked through what produces them:
 "<dir>/node_modules/..." needs "<dir>/package.json", and "artifacts/<name>/..." needs some
 tracked toolkit file that mentions "artifacts/<name>".
 
@@ -89,6 +90,17 @@ class Tree:
             elif kind == "commit":
                 self.gitlinks[path] = sha
         self.top = {p.split("/", 1)[0] for p in self.files | self.dirs | set(self.gitlinks)}
+        self.deps = self._deps()
+        if self.deps:
+            self.top.add("deps")
+
+    def _deps(self) -> dict[str, str]:
+        """name -> pinned commit from deps.json at this commit; empty when there is none."""
+        if "deps.json" not in self.files:
+            return {}
+        import json
+        text = git("show", f"{self.commit}:deps.json", cwd=self.repo)
+        return {name: entry["commit"] for name, entry in json.loads(text).items()}
 
     def exists(self, path: str) -> bool | None:
         """True or False when the path can be decided; None when it lies in a nested
@@ -98,6 +110,16 @@ class Tree:
             return any(fnmatch.fnmatch(p, path) for p in self.files | self.dirs)
         if path in self.files or path in self.dirs or path in self.gitlinks:
             return True
+        if path == "deps" and self.deps:
+            return True
+        if path.startswith("deps/") and self.deps:
+            name, _, rest = path[len("deps/"):].partition("/")
+            if name not in self.deps:
+                return False
+            checkout = self.repo / "deps" / name
+            if not (checkout / ".git").exists():
+                return None
+            return rest == "" or nested_tree(str(checkout), self.deps[name]).exists(rest)
         for link, sha in self.gitlinks.items():
             if path.startswith(link + "/"):
                 nested = self.repo / link
@@ -211,7 +233,7 @@ def main() -> int:
 
     print(f"Toolkit pinned at {commit[:7]}; {checked} path references checked.")
     for line in unknown:
-        print(f"UNCHECKED (nested submodule not checked out)  {line}")
+        print(f"UNCHECKED (dependency not fetched; run node deps.mjs in {SUBMODULE})  {line}")
     if verbose:
         for line in branch_urls:
             print(f"BRANCH URL (not checked)  {line}")

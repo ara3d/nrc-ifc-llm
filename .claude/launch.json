@@ -7,7 +7,7 @@
       "runtimeArgs": [
         "run",
         "--project",
-        "C:/Users/cdigg/git/nrc-ifc-llm/bim-open-toolkit/src/flow/BimOpenFlow.Host",
+        "C:/Users/cdigg/git/nrc-ifc-llm/bim-open-toolkit/src/studio/BimOpenFlow.Studio",
         "--no-build",
         "--",
         "--port",
@@ -30,7 +30,9 @@
         "--prefix",
         "C:/Users/cdigg/git/nrc-ifc-llm/bim-open-toolkit/bimopenflow/web",
         "run",
-        "web"
+        "dev",
+        "--workspace",
+        "packages/studio-web"
       ],
       "port": 5300
     }

@@ -38,7 +38,7 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 | M2 | An unattended LLM run of the eight questions, with model name and per-question match in §6.2 (handoff-needs.md, M2). | Met: `gpt-5`, 2026-09-18, toolkit `66df499`; the result is SOW-3's 4 of 8. | By hand, last run 2026-09-18; `poc` checks the recorded Q2, Q4 and Q6 answers. |
 | M3 | Every number in the abstract and every figure caption is labelled synthetic, or the run is repeated on real NRC data (handoff-needs.md, M3). | Partly. The abstract (`paper/00-abstract.md` line 36) and the captions of Figures 2, 5 and 6 say synthetic; no one has checked every caption, and no real dataset has arrived. | None. |
 | M4 | Viewer comparison in §4.3 with at least three rows tested; covers the tools SOW §3.2 names (handoff-needs.md, M4). | Partly. One row (the toolkit's viewer) is filled; seven rows still read "to test". | None. |
-| M5 | Editorial pass: Q2 narrative consistent in §6.2 and §7.1, figures cited in order, no "will be reported in the next revision", real citations for the Duplex model and the National Building Code (NBC) (handoff-needs.md, M5). | Partly. References 6 (NBC 2020) and 18 (Duplex) exist. `paper/10-conclusion.md` line 29 still says "will be reported in the next revision". Appendix C's client configuration runs the server project by its old name, `Ara3D.Ifc.Mcp`, which the pinned toolkit no longer has (it is `BimOpenMcp.Ifc` under `src/mcp/`). | `paths` lists the Appendix C path as known missing (`checks/known-missing-paths.txt`); the rest none. |
+| M5 | Editorial pass: Q2 narrative consistent in §6.2 and §7.1, figures cited in order, no "will be reported in the next revision", real citations for the Duplex model and the National Building Code (NBC) (handoff-needs.md, M5). | Partly. References 6 (NBC 2020) and 18 (Duplex) exist. `paper/10-conclusion.md` line 29 still says "will be reported in the next revision". Appendix C's client configuration runs the server project by its old name, `Ara3D.Ifc.Mcp`, which the pinned toolkit no longer has (it is `BimOpenMcp.Ifc` under `deps/bim-open-data/src/mcp/`). | `paths` lists the Appendix C path as known missing (`checks/known-missing-paths.txt`); the rest none. |
 | I1 | Write the Layer 2 reference as an `IfcDocumentReference` from `EnrichIfc` (handoff-needs.md, I1). | Partly. `IfcDocumentReferenceBuilder` exists in the toolkit at the pin; `poc/EnrichIfc/Program.cs` does not call it. | None. |
 | I2 | A storey-of-element view, so Q2 counts 103 elements on Level 1 (handoff-needs.md, I2). | Met: `StoreyOfEntity` and the graph `nrc-storey-of-element` (Figure 10). | `toolkit-nrc` (`ModelGraphTests`); `poc` recomputes the Q2 storey means from the IFC by the same containment and aggregation walk. |
 | I3 | Typed values through `sink.writePsets`, so the enrichment is one graph (handoff-needs.md, I3). | Met: `nrc-enrich-run`. | `toolkit-nrc` (`RollupGraphTests`). |
@@ -71,19 +71,13 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 Rows with no check: SOW-1, SOW-6, SOW-7, SOW-8, M3, M4, I1, I4, I6, I7, I8, I9 (none in this
 repository), W6-3; M5 is checked only for its Appendix C path.
 
-## Paths that will break when the pin moves
+## The pin moved to `v0.1` on 2026-10-04
 
-The toolkit is being split into separate repositories; these references exist at `34499e3`
-and will not after the split. `checks/check_toolkit_paths.py` will report each one when the
-pin moves to a tagged commit after the split.
-
-- `CLAUDE.md`: the nested-submodule instructions (`submodules/gratify`, `parakeet`).
-- `scripts/build-mcp.mjs` in `README.md` line 29 and `CLAUDE.md` line 8.
-- `.mcp.json` line 6: `artifacts/bim-flow-ifc/mcp/bimopenmcp-ifc.dll`.
-- `.claude/launch.json` lines 10 and 31: the host project and the web editor folder.
-- `poc/EnrichIfc/EnrichIfc.csproj` line 16: `src/data/Ara3D.Ifc.Editing`.
-- `poc/screenshots.mjs` line 8: `viz/node_modules/playwright-core`.
-- `src/mcp/BimOpenMcp.Ifc` in `poc/README.md` line 52 and `poc/ask_ifc_mcp.py` line 5.
-- `paper/handoff-needs.md` lines 30–38, 56, 59, 82, 91, 94, 146, 158, 168, 193, 210.
-- `viz/packages/loaders/src/bfast-loader.ts` in `paper/nrc-style/p13-annexes.md` line 316,
-  `paper/paper.md` line 1572 and `paper/poc-gap-report.md` line 51.
+The toolkit was split into separate repositories and `v0.1` is its first tagged tested set
+(README of `bim-open-toolkit`, "Tested sets"). The toolkit has no nested submodules any more;
+`node deps.mjs` fills `bim-open-toolkit/deps/` from `deps.json`. Every reference this
+repository makes into the toolkit was moved the same day and `checks/check_toolkit_paths.py`
+resolves `deps/<name>/...` through those pins: the byte-exact writer and the IFC MCP server
+are under `deps/bim-open-data`, the dataflow host and node packs under `deps/bim-open-flow`, the 3D viewer under
+`deps/bim-open-viewer`, and the bim-profile host is `src/studio/BimOpenFlow.Studio`. The NRC answer tests
+are `tests/studio/BimOpenFlow.NrcWorkflows.Tests`.

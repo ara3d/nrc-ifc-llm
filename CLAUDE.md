@@ -2,7 +2,7 @@
 
 This repository holds a technical paper and a proof of concept on storing building analytics in IFC models and querying them in natural language. The BIM Open Toolkit is a git submodule at `bim-open-toolkit/`; its code is not edited from here.
 
-The toolkit has submodules of its own (`bim-open-toolkit/submodules/gratify` and `parakeet`), so submodules must be fetched recursively. If `bim-open-toolkit/` or anything under `bim-open-toolkit/submodules/` is empty, run `git submodule update --init --recursive` from this repository's root before building or answering anything. Plain `git submodule update --init` leaves the nested ones empty and the toolkit will not build.
+The submodule is pinned to a tagged tested set of the toolkit (`v0.1`). The toolkit takes its own dependencies (the BIM Open data, flow, viewer, notebook, and schema repositories, Gratify, and the Ara 3D SDK and dataflow engine) from `bim-open-toolkit/deps/`, filled by `node deps.mjs` from `bim-open-toolkit/deps.json`. If `bim-open-toolkit/` is empty, run `git submodule update --init` from this repository's root; if `bim-open-toolkit/deps/` is empty, run `node deps.mjs` inside `bim-open-toolkit/`. Nothing builds until both have been done.
 
 - Before answering a question about an `.ifc` file, read `bim-open-toolkit/.claude/skills/ifc-ask/SKILL.md` and the `ifc-guide.md` beside it. The `bimopen-ifc` MCP server in `.mcp.json` answers those questions. Pass absolute paths with forward slashes.
 - If the `bimopen-ifc` server is missing, it has not been built: run `node scripts/build-mcp.mjs` inside `bim-open-toolkit/`, then ask the user to restart Claude Code.

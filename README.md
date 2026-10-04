@@ -11,17 +11,17 @@ The work will produce a technical paper and a minimal proof of concept.
 The repository is set up for [Claude Code](https://claude.com/claude-code). Claude reads `CLAUDE.md` and connects to the IFC query server listed in `.mcp.json`, so you can ask questions about the sample building models in plain English.
 
 1. Install Git, the .NET 8 SDK, Node.js, and Claude Code.
-2. Clone with submodules. The BIM Open Toolkit is a submodule, and it has submodules of its own, so the fetch must be recursive:
+2. Clone with the submodule, then fetch the toolkit's dependencies. The BIM Open Toolkit is a submodule pinned to its tagged tested set `v0.1`; the toolkit fetches the repositories it is built from into `bim-open-toolkit/deps/`:
 
    ```bash
    git clone --recurse-submodules https://github.com/ara3d/nrc-ifc-llm
    ```
 
-   If you already cloned without that flag, run this from the repository root:
-
    ```bash
-   git submodule update --init --recursive
+   node bim-open-toolkit/deps.mjs
    ```
+
+   If you already cloned without the first flag, run `git submodule update --init` from the repository root before the second command.
 
 3. Build the toolkit's query server once:
 
@@ -42,14 +42,14 @@ The carbon values in `poc/` are synthetic, made up for demonstration.
 
 [REQUIREMENTS.md](REQUIREMENTS.md) lists every requirement on this repository (the statement of work, the paper's handoff items, and the toolkit's "reproduce the paper" workflow), whether it is met, and what checks it.
 
-[.github/workflows/check.yml](.github/workflows/check.yml) runs on every push and pull request, in three jobs: `paths` (every path into `bim-open-toolkit/` exists at the pinned commit), `poc` (the enrichment and the eight answers), and `toolkit-nrc` (the toolkit's NRC answer tests). To run the same checks locally from the repository root, with Python 3, the .NET 8 SDK, and the submodules fetched recursively:
+[.github/workflows/check.yml](.github/workflows/check.yml) runs on every push and pull request, in three jobs: `paths` (every path into `bim-open-toolkit/` exists at the pinned commit), `poc` (the enrichment and the eight answers), and `toolkit-nrc` (the toolkit's NRC answer tests). To run the same checks locally from the repository root, with Python 3, the .NET 8 SDK, the submodule fetched, and `node bim-open-toolkit/deps.mjs` run once:
 
 ```bash
 python checks/check_toolkit_paths.py
 dotnet run --project poc/EnrichIfc -c Release -- IFC-Test-Kit/duplex.ifc poc/data/psets_to_write.csv out/duplex-enriched.ifc out/enrich-report.json
 python poc/check_enriched_ifc.py IFC-Test-Kit/duplex.ifc out/duplex-enriched.ifc poc/data/psets_to_write.csv
 python poc/check_answers.py
-dotnet test bim-open-toolkit/tests/flow/BimOpenFlow.NrcWorkflows.Tests -c Release
+dotnet test bim-open-toolkit/tests/studio/BimOpenFlow.NrcWorkflows.Tests -c Release
 ```
 
 The last command builds the toolkit projects the tests need: about 2 minutes on a CI runner, 14 minutes on the first local run with an empty build cache. A reference the pinned toolkit no longer has, but which is not fixed yet, goes in `checks/known-missing-paths.txt` with its reason.

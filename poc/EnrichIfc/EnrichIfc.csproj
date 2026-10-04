@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\bim-open-toolkit\src\data\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
+    <ProjectReference Include="..\..\bim-open-toolkit\deps\bim-open-data\src\data\Ara3D.Ifc.Editing\Ara3D.Ifc.Editing.csproj" />
   </ItemGroup>
 
 </Project>
