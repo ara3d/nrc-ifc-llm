@@ -1,5 +1,5 @@
 """Generate a synthetic analytics dataset for duplex.ifc following the paper's
-three-layer storage recommendation (paper/03-storage-options.md, Appendix A).
+three-layer storage recommendation (paper section 3, Appendix A; the paper is kept outside this repository).
 
 Reads:  IFC-Test-Kit/duplex.ifc, IFC-Test-Kit/analytics_dataset_with_levels.csv
 Writes: poc/data/nrc_analytics_elements.csv   Layer 1 values, one row per element (wide)

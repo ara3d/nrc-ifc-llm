@@ -2,8 +2,3 @@
 # reason. Format: file | toolkit path | reason. checks/check_toolkit_paths.py reports these as
 # KNOWN instead of failing, and fails on an entry that no longer matches, so fix the
 # reference and delete its line together.
-paper/appendix-c-tool-surface.md | src/Ara3D.Ifc.Mcp | pre-reorganisation name of the IFC MCP server; at the pin it is deps/bim-open-data/src/mcp/BimOpenMcp.Ifc (paper content, left for the editorial pass, M5)
-paper/paper.md | src/Ara3D.Ifc.Mcp | built copy of appendix C; regenerate after fixing the chapter
-paper/nrc-style-paper.md | src/Ara3D.Ifc.Mcp | built copy of appendix C; regenerate after fixing the chapter
-paper/nrc-style/p13-annexes.md | src/Ara3D.Ifc.Mcp | NRC-style copy of appendix C
-paper/paper-v2-review.md | src/Ara3D.Ifc.Mcp | the review quotes the old path to describe the four exceptions above; not a reference to fix

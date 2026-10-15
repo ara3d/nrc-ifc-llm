@@ -4,7 +4,7 @@ exist at the commit the bim-open-toolkit submodule is pinned to.
 Usage: python checks/check_toolkit_paths.py [--verbose]
 
 What it scans: tracked and new (not ignored) Markdown, scripts, and configuration files in
-this repository (README.md, CLAUDE.md, .mcp.json, .claude/launch.json, poc/, paper/, csproj
+this repository (README.md, CLAUDE.md, .mcp.json, .claude/launch.json, poc/, csproj
 files, workflows). It skips recorded evidence (poc/results/, poc/store/), data folders, and
 the submodule itself.
 

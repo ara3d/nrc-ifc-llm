@@ -7,7 +7,7 @@ The submodule is pinned to a tagged tested set of the toolkit (`v0.1`). The tool
 - Before answering a question about an `.ifc` file, read `bim-open-toolkit/.claude/skills/ifc-ask/SKILL.md` and the `ifc-guide.md` beside it. The `bimopen-ifc` MCP server in `.mcp.json` answers those questions. Pass absolute paths with forward slashes.
 - If the `bimopen-ifc` server is missing, it has not been built: run `node scripts/build-mcp.mjs` inside `bim-open-toolkit/`, then ask the user to restart Claude Code.
 - Sample models: `data/`, `IFC-Test-Kit/`, and `poc/data/duplex-enriched.ifc` (duplex with synthetic carbon property sets).
-- The paper is in `paper/` (start at `paper/README.md`); the proof of concept and how to reproduce it are in `poc/README.md`.
+- The paper lives outside this repository, in `C:\Users\cdigg\nrc\paper` (start at its `README.md`); the proof of concept and how to reproduce it are in `poc/README.md`.
 - Analytics values in `poc/` are synthetic. Say so when quoting them.
 
 ## Checks

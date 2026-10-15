@@ -103,6 +103,6 @@ writes the table. The paper's Table 4 (version 2) is its output over the committ
 python poc/score_unattended.py poc/results/unattended/2026-10-04/*.json --markdown poc/results/unattended/2026-10-04/scores.md
 ```
 
-See [../paper/paper-v2.md](../paper/paper-v2.md) for the version 2 write-up,
-[../paper/06-proof-of-concept.md](../paper/06-proof-of-concept.md) for the version 1 write-up and
-[../paper/poc-gap-report.md](../paper/poc-gap-report.md) for what did not work or was not done.
+The paper is kept outside this repository (`C:\Users\cdigg\nrc\paper`): `paper-v2.md` is the
+version 2 write-up, `06-proof-of-concept.md` the version 1 write-up and `poc-gap-report.md`
+lists what did not work or was not done.
