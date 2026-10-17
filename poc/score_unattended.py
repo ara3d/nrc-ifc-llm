@@ -61,6 +61,8 @@ LEGACY = {
 # Version 2 Q5: the three largest analytics-category totals (Wall, Floor, Other).
 LEGACY_Q5_BY_CATEGORY = [22854.1, 5593.5, 4313.1]
 GLOBAL_ID = re.compile(r"(?<![\w$])[0-9A-Za-z_$]{22}(?![\w$])")
+# Other kinds of element a Q7 answer should not list beside the roof.
+EXTRA_ELEMENTS = re.compile(r"IFC(?:PROJECT|BUILDING|BUILDINGSTOREY|ZONE|SPACE)\b", re.IGNORECASE)
 ZONE_NAME = re.compile(r"Unit\s*B\W{0,4}Level\s*1", re.IGNORECASE)
 
 
@@ -137,11 +139,12 @@ def score_q4_legacy(a: str, exp: dict) -> Verdict:
 
 def score_q5(a: str, exp: dict) -> Verdict:
     ns = numbers(a)
-    if has_all(ns, list(exp["answer"].values())):
+    # Totals rounded to whole numbers are accepted, so the tolerance is 0.5 kgCO2e/yr, not 0.05.
+    if all(has(ns, v, abs_tol=0.51) for v in exp["answer"].values()):
         v = "Partial" if CONTAINER.search(a) else "Match"
     else:
         v = "Miss"
-    return Verdict("Q5", v, "all 14 per-class totals stated; container rows not listed")
+    return Verdict("Q5", v, "all 14 per-class totals stated (whole numbers accepted); container rows not listed")
 
 
 def score_q5_legacy(a: str, exp: dict) -> Verdict:
@@ -165,13 +168,13 @@ def score_q7(a: str, exp: dict) -> Verdict:
     ids = set(GLOBAL_ID.findall(a))
     named = wanted in ids or re.search(r"\bIFCROOF\b", a, re.IGNORECASE) is not None
     others = {i for i in ids if i != wanted and any(c.isdigit() for c in i) and any(c.isalpha() for c in i)}
-    if named and not others:
+    if named and not others and not EXTRA_ELEMENTS.search(a):
         v = "Match"
     elif named:
         v = "Partial"
     else:
         v = "Miss"
-    return Verdict("Q7", v, "the one IfcRoof (0jf0rYHfX3RAB3bSIRjmxl) named, no other element listed")
+    return Verdict("Q7", v, "the one IfcRoof (0jf0rYHfX3RAB3bSIRjmxl) named; another element, project, storey or zone listed is a Partial")
 
 
 def score_q7_legacy(a: str, exp: dict) -> Verdict:

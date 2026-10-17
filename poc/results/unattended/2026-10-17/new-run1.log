@@ -1,0 +1,65 @@
+9 question(s) about C:\Users\cdigg\git\nrc-ifc-llm\bim-open-toolkit\samples\nrc\duplex-enriched.ifc with claude-haiku-4-5-20251001
+[1/9] What is the total operational carbon for the building?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":10,"skip":0,"count":10,"items":[{"propertySet":"NRC_BuildingSummary","name":"TotalEmbod.
+    ifc_sql: {"total":1,"skip":0,"count":1,"columns":["Name","Value"],"rows":[["TotalOperationalCarbon_kgCO2e_per_year","37196.2"]]}
+    3 tool calls, 4 turns, 48183 in / 847 out tokens
+[2/9] Which storey has the higher mean energy intensity, Level 1 or Level 2?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_spatial_tree: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","roots":[{"id":34,"type":"IFCPROJECT","name":"0001","elementCo.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":5,"skip":0,"count":5,"items":[{"propertySet":"NRC_BuildingSummary","name":"MeanEnergyUs.
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\.
+    bos_sql: FAILED {
+  "ok": false,
+  "error": "Binder Error: Ambiguous reference to column name \u0022Name\u0022 (use: \u0022e.Name\u0022 or \u0022p.Name\u0022)",
+  "type": "DuckDBException"
+}
+    bos_sql: {"total":2,"skip":0,"count":2,"columns":["Name","Name_1","Value"],"rows":[["Level 1","MeanEnergyUseIntensity_kWh_per_m2_year","40.5"],["Level 2","MeanEnergyUseI.
+    6 tool calls, 7 turns, 81762 in / 1611 out tokens
+[3/9] Which five elements have the highest operational carbon?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":10,"skip":0,"count":10,"items":[{"propertySet":"NRC_BuildingSummary","name":"TotalEmbod.
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\.
+    ifc_sql: {"total":5,"skip":0,"count":5,"columns":["GlobalId","Name","Category","OperationalCarbon_kgCO2e_per_year"],"rows":[["0iEHWY1$XA8eQeeULq4jpl","Basic Wall:Interio.
+    4 tool calls, 5 turns, 51242 in / 1308 out tokens
+[4/9] What is the operational carbon of the door with GlobalId 1hOSvn6df7F8_7GcBWlS8Z?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_search: {"total":1,"skip":0,"count":1,"items":[{"id":8066,"type":"IFCDOOR","name":"M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173","globalId":"1hOSvn6df7F8_7GcBWlS8Z.
+    ifc_properties: {"entity":{"id":8066,"type":"IFCDOOR","name":"M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173","globalId":"1hOSvn6df7F8_7GcBWlS8Z"},"properties":{"total":74,".
+    3 tool calls, 4 turns, 50459 in / 801 out tokens
+[5/9] How much operational carbon is stored per IFC class?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":10,"skip":0,"count":10,"items":[{"propertySet":"NRC_BuildingSummary","name":"TotalEmbod.
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\.
+    ifc_sql: {"total":14,"skip":0,"count":14,"columns":["Category","TotalOperationalCarbon_kgCO2e_per_year","ElementCount"],"rows":[["IFCWALLSTANDARDCASE",17547.399999999998.
+    4 tool calls, 5 turns, 62379 in / 1552 out tokens
+[6/9] Which analysis run produced these values, and when?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":12,"skip":0,"count":12,"items":[{"propertySet":"NRC_AnalyticsProvenance","name":"Analys.
+    2 tool calls, 3 turns, 23568 in / 810 out tokens
+[7/9] Which analysed elements carry no embodied-carbon property set?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":6,"skip":0,"count":6,"items":[{"propertySet":"NRC_BuildingSummary","name":"TotalEmbodie.
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\.
+    bos_sql: FAILED {
+  "ok": false,
+  "error": "Missing required argument: bosPath",
+  "type": "McpProtocolException"
+}
+    ifc_sql: {"total":11,"skip":0,"count":11,"columns":["EntityIndex","Name","Category","GlobalId"],"rows":[[4708,null,"IFCBUILDING","1xS3BCk291UvhgP2a6eflK"],[136,"Level 1".
+    5 tool calls, 6 turns, 64389 in / 1915 out tokens
+[8/9] What is the total embodied carbon (A1-A3) per storey?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":10,"skip":0,"count":10,"items":[{"propertySet":"NRC_BuildingSummary","name":"TotalEmbod.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":6,"skip":0,"count":6,"items":[{"propertySet":"NRC_BuildingSummary","name":"TotalEmbodie.
+    ifc_spatial_tree: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","roots":[{"id":34,"type":"IFCPROJECT","name":"0001","elementCo.
+    ifc_sql: {"total":4,"skip":0,"count":4,"columns":["StoreyName","EmbodiedCarbon_A1A3_kgCO2e"],"rows":[["Level 1","49451.2"],["Level 2","48696.8"],["Roof","5821.0"],["T/FD.
+    5 tool calls, 6 turns, 54703 in / 1393 out tokens
+[9/9] Which zone has the highest energy use intensity?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42704,"openedUtc":"2026-10-17T.
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\bim-open-toolkit\\samples\\nrc\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\.
+    ifc_parameters: {"parameterCount":366,"elementsWithParameters":275,"parameters":{"total":5,"skip":0,"count":5,"items":[{"propertySet":"NRC_BuildingSummary","name":"MeanEnergyUs.
+    ifc_sql: {"total":4,"skip":0,"count":4,"columns":["ZoneName","EnergyUseIntensity_kWh_per_m2_year"],"rows":[["Unit B Level 1","78.04"],["Unit A Level 1","72.93"],["Unit B.
+    4 tool calls, 5 turns, 47736 in / 1026 out tokens
+wrote C:\Users\cdigg\git\nrc-ifc-llm\poc\results\unattended\2026-10-17\new-run1.md
+wrote C:\Users\cdigg\git\nrc-ifc-llm\poc\results\unattended\2026-10-17\new-run1.json

@@ -1,0 +1,69 @@
+9 question(s) about C:\Users\cdigg\git\nrc-ifc-llm\poc\data\duplex-enriched.ifc with claude-haiku-4-5-20251001
+[1/9] What is the total operational carbon for the building?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":1,"skip":0,"count":1,"items":[{"propertySet":"Pset_NRCOperationalCarbon","name":"Operat.
+    ifc_sql: {"total":1,"skip":0,"count":1,"columns":["TotalOperationalCarbon_kgCO2e_per_year"],"rows":[[111588.59999999996]]}
+    3 tool calls, 4 turns, 45347 in / 831 out tokens
+[2/9] Which storey has the higher mean energy intensity, Level 1 or Level 2?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_spatial_tree: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","roots":[{"id":34,"type":"IFCPROJECT","name":"0001","elementCount":0,"children":[{".
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":1,"skip":0,"count":1,"items":[{"propertySet":"Pset_NRCEnergyPerformance","name":"Energy.
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":1,"skip":0,"count":1,"items":[{"propertySet":"Pset_NRCEnergyPerformance","name":"Energy.
+    ifc_sql: {"total":2,"skip":0,"count":2,"columns":["StoreyName","MeanEnergyIntensity"],"rows":[["Level 1",40.4990291262136],["Level 2",40.55698924731183]]}
+    5 tool calls, 6 turns, 63592 in / 1398 out tokens
+[3/9] Which five elements have the highest operational carbon?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":3,"skip":0,"count":3,"items":[{"propertySet":"Pset_NRCEmbodiedCarbon","name":"EmbodiedC.
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\\bos\\fa7c72e02fc41b1.
+    ifc_sql: {"total":5,"skip":0,"count":5,"columns":["GlobalId","Name","Category","OperationalCarbon_kgCO2e_per_year"],"rows":[["1xS3BCk291UvhgP2a6eflK",null,"IFCBUILDING",.
+    4 tool calls, 5 turns, 58944 in / 1197 out tokens
+[4/9] What is the operational carbon of the door with GlobalId 1hOSvn6df7F8_7GcBWlS8Z?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_search: {"total":1,"skip":0,"count":1,"items":[{"id":8066,"type":"IFCDOOR","name":"M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173","globalId":"1hOSvn6df7F8_7GcBWlS8Z.
+    ifc_properties: {"entity":{"id":8066,"type":"IFCDOOR","name":"M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173","globalId":"1hOSvn6df7F8_7GcBWlS8Z"},"properties":{"total":74,".
+    3 tool calls, 4 turns, 39189 in / 744 out tokens
+[5/9] How much operational carbon is stored per IFC class?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":3,"skip":0,"count":3,"items":[{"propertySet":"Pset_NRCEmbodiedCarbon","name":"EmbodiedC.
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":0,"skip":0,"count":0,"items":[]}}
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\\bos\\fa7c72e02fc41b1.
+    ifc_sql: {"total":16,"skip":0,"count":16,"columns":["Category","ElementCount","TotalOperationalCarbon_kgCO2e_per_year","AvgOperationalCarbon_kgCO2e_per_year"],"rows":[[".
+    5 tool calls, 6 turns, 60454 in / 1515 out tokens
+[6/9] Which analysis run produced these values, and when?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":0,"skip":0,"count":0,"items":[]}}
+    ifc_entities_of_type: {"total":1,"skip":0,"count":1,"items":[{"id":34,"type":"IFCPROJECT","name":"0001","globalId":"1xS3BCk291UvhgP2a6eflL"}]}
+    ifc_properties: {"entity":{"id":34,"type":"IFCPROJECT","name":"0001","globalId":"1xS3BCk291UvhgP2a6eflL"},"properties":{"total":9,"skip":0,"count":9,"items":[{"propertySet":"Ps.
+    4 tool calls, 5 turns, 58375 in / 1198 out tokens
+[7/9] Which analysed elements carry no embodied-carbon property set?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\\bos\\fa7c72e02fc41b1.
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":0,"skip":0,"count":0,"items":[]}}
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":2,"skip":0,"count":2,"items":[{"propertySet":"Pset_NRCEmbodiedCarbon","name":"EmbodiedC.
+    bos_sql: {"total":0,"skip":0,"count":0,"columns":["GlobalId","Name","Category"],"rows":[]}
+    bos_sql: {"total":1,"skip":0,"count":1,"columns":["analyzed_count","with_embodied_carbon","without_embodied_carbon"],"rows":[[0,0,0]]}
+    bos_sql: {"total":0,"skip":0,"count":0,"columns":["ParameterGroup"],"rows":[]}
+    bos_sql: {"total":50,"skip":0,"count":50,"columns":["ParameterGroup"],"rows":[["GSA Space Areas"],["IFCAPPLICATION"],["IFCARBITRARYPROFILEDEFWITHVOIDS"],["IFCBEAM"],["IF.
+    bos_sql: {"total":4,"skip":0,"count":4,"columns":["ParameterGroup"],"rows":[["Pset_NRCAnalyticsProvenance"],["Pset_NRCEmbodiedCarbon"],["Pset_NRCEnergyPerformance"],["Ps.
+    bos_sql: {"total":1,"skip":0,"count":1,"columns":["analyzed_count","with_embodied_carbon","without_embodied_carbon"],"rows":[[224,222,2]]}
+    bos_sql: {"total":2,"skip":0,"count":2,"columns":["GlobalId","Name","Category"],"rows":[["1xS3BCk291UvhgP2a6eflL","0001","IFCPROJECT"],["0jf0rYHfX3RAB3bSIRjmxl","Basic R.
+    11 tool calls, 12 turns, 137847 in / 3107 out tokens
+[8/9] What is the total embodied carbon (A1-A3) per storey?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":3,"skip":0,"count":3,"items":[{"propertySet":"Pset_NRCEmbodiedCarbon","name":"EmbodiedC.
+    ifc_spatial_tree: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","roots":[{"id":34,"type":"IFCPROJECT","name":"0001","elementCount":0,"children":[{".
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\\bos\\fa7c72e02fc41b1.
+    ifc_sql: {"total":4,"skip":0,"count":4,"columns":["StoreyName","TotalEmbodiedCarbon_A1A3_kgCO2e"],"rows":[["Level 1",49451.2],["Level 2",48696.8],["Roof",5821],["T/FDN",.
+    5 tool calls, 6 turns, 65206 in / 1494 out tokens
+[9/9] Which zone has the highest energy use intensity?
+    ifc_open: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","schema":"IFC2X3","entityCount":42664,"openedUtc":"2026-10-17T22:08:37.8342846Z"}
+    ifc_to_bos: {"path":"C:\\Users\\cdigg\\git\\nrc-ifc-llm\\poc\\data\\duplex-enriched.ifc","bosPath":"C:\\Users\\cdigg\\AppData\\Local\\Temp\\bimopenmcp\\bos\\fa7c72e02fc41b1.
+    bos_sql: {"total":0,"skip":0,"count":0,"columns":["Category"],"rows":[]}
+    bos_sql: {"total":0,"skip":0,"count":0,"columns":["ParameterGroup"],"rows":[]}
+    ifc_parameters: {"parameterCount":342,"elementsWithParameters":271,"parameters":{"total":1,"skip":0,"count":1,"items":[{"propertySet":"Pset_NRCEnergyPerformance","name":"Energy.
+    ifc_type_counts: {"total":103,"skip":0,"count":50,"items":[{"type":"IFCCARTESIANPOINT","count":8520},{"type":"IFCPROPERTYSINGLEVALUE","count":7651},{"type":"IFCPOLYLOOP","count".
+    ifc_type_counts: {"total":103,"skip":50,"count":53,"items":[{"type":"IFCFILLAREASTYLEHATCHING","count":31},{"type":"IFCFURNITURETYPE","count":25},{"type":"IFCGEOMETRICSET","coun.
+    bos_sql: {"total":10,"skip":0,"count":10,"columns":["GlobalId","Name","Category","Value"],"rows":[["0dxE1Sy6nDqfpDb5vIMN_Z","Basic Wall:Interior - Furring (152 mm Stud):.
+    8 tool calls, 9 turns, 117400 in / 1757 out tokens
+wrote C:\Users\cdigg\git\nrc-ifc-llm\poc\results\unattended\2026-10-17\old-run1.md
+wrote C:\Users\cdigg\git\nrc-ifc-llm\poc\results\unattended\2026-10-17\old-run1.json
