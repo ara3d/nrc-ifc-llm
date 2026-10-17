@@ -142,6 +142,21 @@ Figure 5 of the paper shows the Duplex model coloured by synthetic operational c
 
 _The Duplex model coloured by synthetic operational carbon. The graph on the left (load instances, read a value table, colour by a column) is the whole description; changing the column re-colours the model without touching the IFC file._
 
+## Deliverable D2: what is NRC-owned and where
+
+The statement of work (section 4, deliverable D2) asks for the proof-of-concept code in a public repository, with the National Research Council of Canada (NRC) as copyright holder. It has three items. This repository holds the NRC-owned part. The BIM Open Toolkit, a git submodule at `bim-open-toolkit/`, is a third-party dependency owned by Ara 3D under the MIT licence; it is not part of the deliverable.
+
+| D2 item | Files | Where | Owner |
+|---|---|---|---|
+| Agent: the runner that asks the questions and the scorer for its answers | `poc/ask_ifc_mcp.py`, `poc/score_unattended.py`, `poc/expected_answers.py`, `poc/check_answers.py` | This repository | NRC |
+| Agent: the tool server and the skill the unattended runs use | `bim-open-toolkit/src/studio/BimOpenMcp.Ifc.Ask/`, `bim-open-toolkit/.claude/skills/ifc-ask/` | Toolkit | Ara 3D, MIT |
+| Enriched IFC, version 1 (the control file) | `poc/data/duplex-enriched.ifc`, written by `poc/EnrichIfc/` | This repository | NRC, with the Duplex model under CC BY 4.0 |
+| Enriched IFC, version 2 (the file the paper cites) | `bim-open-toolkit/samples/nrc/duplex-enriched.ifc`, written by the graph `bim-open-toolkit/samples/nrc-analyses/nrc-enrich-run.json` | Toolkit | Ara 3D, MIT |
+| Visualization snippet: the colouring graphs | `poc/graphs/nrc-color-*.json`; the toolkit's `bim-open-toolkit/samples/nrc-analyses/nrc-color-operational-carbon.json` | Both | NRC for `poc/graphs/`; Ara 3D, MIT for the toolkit copy |
+| Visualization snippet: the figures | `docs/images/` | This repository | NRC |
+
+The licence is the NRC's to choose under section 5 of the statement of work. `LICENSE` proposes MIT, which matches the toolkit and lets the NRC's code and the toolkit's be combined without a conflict, and it names the NRC as copyright holder. It is a placeholder until the NRC decides: does the NRC accept MIT, or does it select another OSI-approved licence (Apache-2.0 adds an explicit patent grant)? The data carries its own licences. The Duplex model, `IFC-Test-Kit/duplex.ifc` and the files derived from it, comes from buildingSMART under CC BY 4.0, which requires attribution; every analytics value in `poc/` is synthetic and generated for this project.
+
 ## How to reach each goal
 
 All commands run from this repository's root unless stated. The full toolkit builds and runs on Windows only.

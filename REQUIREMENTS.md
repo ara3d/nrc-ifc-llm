@@ -29,6 +29,7 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 | SOW-6 | The paper covers storage, display, the role of LLM and agent layers, proof-of-concept results, knowledge graphs and world-model substrates as extensions, and a roadmap for an open bidirectional viewer (SOW §3.4). | Met. Paper §3, §4, §5, §6, §8.3 and §8.4, §9. | None. |
 | SOW-7 | The paper passes the client's editorial review (SOW D3, §6 third criterion). | Not met. No review is recorded; the editorial pass M5 is still open. | None. |
 | SOW-8 | A final presentation and handover to the client team (SOW D4, §6 fourth criterion). | Not met. Nothing in the repository records one. | None. |
+| SOW-9 | The proof-of-concept code is in a public repository under an OSI-approved open-source licence selected by the NRC, with the NRC as copyright holder (SOW §4 D2, §5). | Partly: LICENSE placeholder, NRC's choice pending. The repository is public (confirmed 2026-10-17). `LICENSE` proposes MIT with the NRC as copyright holder and says the NRC selects the licence; the README section "Deliverable D2: what is NRC-owned and where" maps the three D2 items to files and asks the NRC the licence question. Met once the NRC chooses and `LICENSE` is replaced or confirmed. | None automated; the file is `LICENSE`. |
 
 ## Handoff items for the paper
 
@@ -65,10 +66,10 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 | Status | Count | IDs |
 |---|---|---|
 | Met | 15 | SOW-2, SOW-3, SOW-4, SOW-5, SOW-6, M1, M2, I2, I3, I5, I9, W6-2, W6-4, W6-5, W6-6 |
-| Partly | 8 | SOW-1, M3, M4, M5, I1, I8, W6-1, W6-3 |
+| Partly | 9 | SOW-1, SOW-9, M3, M4, M5, I1, I8, W6-1, W6-3 |
 | Not met | 5 | SOW-7, SOW-8, I4, I6, I7 |
 
-Rows with no check: SOW-1, SOW-6, SOW-7, SOW-8, M3, M4, I1, I4, I6, I7, I8, I9 (none in this
+Rows with no check: SOW-1, SOW-6, SOW-7, SOW-8, SOW-9, M3, M4, I1, I4, I6, I7, I8, I9 (none in this
 repository), W6-3; M5 is checked only for its Appendix C path.
 
 ## The pin moved to `v0.1` on 2026-10-04
