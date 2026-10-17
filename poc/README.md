@@ -20,18 +20,19 @@ from an analysis tool.
 | `data/nrc_analytics_long.csv` | Layer 2 table, one row per (run, element, metric). |
 | `data/nrc_analytics_storeys.csv` | Storey and building aggregates. |
 | `data/psets_to_write.csv` | Rows for the writer: entity id, set name, property, IFC value type, value. |
-| `data/duplex-enriched.ifc` | `duplex.ifc` plus 664 property sets, written byte-exactly. |
+| `data/duplex-enriched.ifc` | `duplex.ifc` plus 664 property sets, written byte-exactly. This is the version 1 file with the `Pset_NRC*` set names, kept unchanged as the control for the unattended runs; the current file (`NRC_*` names, zones, a document reference to the long table) is the toolkit's `samples/nrc/duplex-enriched.ifc`. |
 | `data/view_values.csv`, `data/door_verdicts_w1.csv` | Value tables joined to geometry for the 3D colourings. |
 | `EnrichIfc/` | .NET console program: writes the sets with `Ara3D.Ifc.Editing`, diffs, reverses, and hashes. |
 | `results/enrich-report.json` | Output of `EnrichIfc`: counts, SHA-256 of source and target, verification flags. |
-| `expected_answers.py`, `results/expected_answers.json` | Expected answer per question, computed from the CSV alone. |
+| `expected_answers.py`, `results/expected_answers.json` | Expected answer to each of the nine questions, computed from the CSV alone; Q9 (the zone) reads the toolkit's `samples/nrc/nrc-zones.csv` and `nrc_analytics_spaces.csv` through the submodule. |
+| `check_answers.py` | The checks `python poc/check_answers.py` runs: the expected answers against the CSVs, the toolkit's CSV copies against `data/`, and Q2, Q4, Q6 (and, for the toolkit's file, Q7 and Q9) from the property sets inside the version 1 control file and the toolkit's regenerated `samples/nrc/duplex-enriched.ifc`. |
 | `ask_ifc_mcp.py`, `results/transcript.md` | MCP client helper and the recorded question-answering session. |
 | `graphs/*.json` | BimOpenFlow graphs: colour by carbon, by category, by door verdict, and a storey chart. |
 | `store/` | The host's analysis store used for the screenshots (graphs plus seeded samples). |
 
 ## Reproducing
 
-The toolkit is a git submodule at `bim-open-toolkit/`, pinned to its tagged tested set `v0.1`. After cloning this repository, run `git submodule update --init`, then `node deps.mjs` inside `bim-open-toolkit/` to fetch the repositories the toolkit is built from (the byte-exact writer and the IFC MCP server live in `deps/bim-open-data`).
+The toolkit is a git submodule at `bim-open-toolkit/`, pinned to its tagged tested set `v0.2`. After cloning this repository, run `git submodule update --init`, then `node deps.mjs` inside `bim-open-toolkit/` to fetch the repositories the toolkit is built from (the byte-exact writer and the IFC MCP server live in `deps/bim-open-data`).
 
 ```bash
 python poc/generate_synthetic_analytics.py
@@ -79,12 +80,12 @@ npm run nrc:walkthrough --prefix bimopenflow/web
 
 Its output index is copied here as `results/walkthrough-index.md`; the IFC MCP replay of Q1,
 Q5, Q7, and Q8 is `results/transcript-mcp-replay.md`. The unattended language-model run uses
-`bimopenmcp-ifc-ask` with `samples/nrc/questions.txt` (the eight questions verbatim) and is
+`bimopenmcp-ifc-ask` with `samples/nrc/questions.txt` (the nine questions verbatim) and is
 recorded as `results/transcript-unattended.md` and `results/results-unattended.json`.
 
 ## Unattended runs with Claude, scored
 
-`results/unattended/<date>/` holds the runs of the eight questions made with the toolkit's
+`results/unattended/<date>/` holds the runs of the paper's questions made with the toolkit's
 `bimopenmcp-ifc-ask` runner through the Claude Code command line (model and effort in each
 transcript's header), one fresh conversation per question, every tool call recorded. Files named
 `new-run<n>` ran over the toolkit's regenerated `samples/nrc/duplex-enriched.ifc` (summary sets
@@ -102,6 +103,14 @@ writes the table. The paper's Table 4 (version 2) is its output over the committ
 ```bash
 python poc/score_unattended.py poc/results/unattended/2026-10-04/*.json --markdown poc/results/unattended/2026-10-04/scores.md
 ```
+
+### 2026-10-17: the nine questions on toolkit `v0.2`
+
+The toolkit release `v0.2` renamed the property sets from `Pset_NRC*` to `NRC_*`, reworded
+Q4 (by GlobalId), Q5 (per IFC class) and Q7 (which elements carry no embodied-carbon set),
+and added the zone level and Q9. `score_unattended.py` scores a run from its own question
+text, so the 2026-10-04 files still reproduce their table (the old wording of Q4, Q5 and Q7
+keeps its old rule). The rerun is in `results/unattended/2026-10-17/` with its own `README.md`.
 
 The paper is kept outside this repository (`C:\Users\cdigg\nrc\paper`): `paper-v2.md` is the
 version 2 write-up, `06-proof-of-concept.md` the version 1 write-up and `poc-gap-report.md`

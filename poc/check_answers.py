@@ -1,17 +1,21 @@
-"""Assert the paper's eight expected answers (section 6.2) against this repository's data.
+"""Assert the paper's nine expected answers (section 6.2) against this repository's data.
 
-Usage: python poc/check_answers.py [enriched.ifc]
-       (default: poc/data/duplex-enriched.ifc)
+Usage: python poc/check_answers.py [control.ifc]
+       (default: poc/data/duplex-enriched.ifc, the version 1 control file with Pset_NRC* names)
 
 Checks, one line each:
   1. poc/results/expected_answers.json equals what poc/expected_answers.py computes from
-     poc/data/nrc_analytics_elements.csv, for all eight questions.
+     poc/data/nrc_analytics_elements.csv and, for Q9, the toolkit's zone and space tables, for
+     all nine questions.
   2. The toolkit's copies of the analytics CSVs and of the source model (bim-open-toolkit/
      samples/nrc) are byte-identical to the ones here, so the toolkit's NrcWorkflows tests,
      which assert the eight answers over those copies, assert them over this data.
-  3. Q2, Q4 and Q6 recomputed from the property sets inside the enriched IFC file, without
-     the CSV, equal the expected answers. (The toolkit's CI comment names Q1, Q3, Q5, Q7 and
-     Q8; its CsvGraphTests also assert Q2, Q4 and Q6, but over the CSV, not the IFC.)
+  3. Q2, Q4 and Q6 recomputed from the property sets inside the version 1 control file, without
+     the CSV, equal the expected answers.
+  3b. The same three from the toolkit's regenerated samples/nrc/duplex-enriched.ifc (NRC_*
+     names), plus Q7 (the elements with no NRC_EmbodiedCarbon set) and Q9 (the zone with the
+     highest NRC_ZoneSummary intensity). The toolkit's own tests assert the same values over
+     the CSVs and the Run.
   4. The recorded unattended language-model run (poc/results/results-unattended.json) states
      the expected values for Q2, Q4 and Q6, the three it answered correctly per paper
      section 6.2. No model is called.
@@ -29,7 +33,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-from expected_answers import ELEMENTS, OUT as EXPECTED_JSON, compute  # noqa: E402
+from expected_answers import ELEMENTS, OUT as EXPECTED_JSON, SPACES, ZONES, compute, read_csv  # noqa: E402
 from ifc_step import property_sets, read_entities, storey_of  # noqa: E402
 
 TOOLKIT_SAMPLES = ROOT / "bim-open-toolkit" / "samples" / "nrc"
@@ -67,7 +71,9 @@ def _content(path: Path) -> bytes:
     return data.replace(b"\r\n", b"\n") if path.suffix == ".csv" else data
 
 
-def check_from_ifc(ifc: Path, expected: dict) -> None:
+def check_from_ifc(ifc: Path, expected: dict, prefix: str = "Pset_NRC", label: str = "the IFC") -> None:
+    """Q2, Q4 and Q6 from the property sets of one enriched file. `prefix` is the set-name prefix
+    (Pset_NRC in the version 1 control file, NRC_ in the toolkit's file)."""
     entities = read_entities(ifc)
     psets = property_sets(entities)
     storeys = storey_of(entities)
@@ -75,32 +81,50 @@ def check_from_ifc(ifc: Path, expected: dict) -> None:
     eui = "EnergyUseIntensity_kWh_per_m2_year"
     by_storey: dict[str, list[float]] = {}
     for eid, sets in psets.items():
-        value = sets.get("Pset_NRCEnergyPerformance", {}).get(eui)
+        value = sets.get(prefix + "EnergyPerformance", {}).get(eui)
         if value is not None and entities[eid].type not in ("IFCBUILDING", "IFCBUILDINGSTOREY"):
             by_storey.setdefault(storeys.get(eid, "?"), []).append(value)
     means = {s: round(sum(v) / len(v), 2) for s, v in by_storey.items()}
     want = expected["Q2"]["answer"]
-    check("Q2 mean energy intensity per storey, from the IFC", means == want, f"{means}")
+    check("Q2 mean energy intensity per storey, from " + label, means == want, f"{means}")
     higher = max(("Level 1", "Level 2"), key=lambda s: means.get(s, float("-inf")))
-    check("Q2 Level 2 is the higher, from the IFC", higher == "Level 2")
+    check("Q2 Level 2 is the higher, from " + label, higher == "Level 2")
 
-    doors = sorted(e.id for e in entities.values()
-                   if e.type == "IFCDOOR" and str(e.args[2]).startswith("M_Single-Flush:0762 x 2032mm"))
-    first = entities[doors[0]] if doors else None
-    oc = psets.get(first.id, {}).get("Pset_NRCOperationalCarbon", {}).get(
-        "OperationalCarbon_kgCO2e_per_year") if first else None
     want = expected["Q4"]["answer"]
-    check("Q4 first door by STEP id and its operational carbon, from the IFC",
-          first is not None and first.args[0] == want["GlobalId"] and first.args[2] == want["Name"]
-          and oc == want["value"], f"{len(doors)} doors share the name; #{doors[0] if doors else '-'} = {oc}")
+    door = next((e for e in entities.values() if e.type == "IFCDOOR" and e.args[0] == want["GlobalId"]), None)
+    oc = psets.get(door.id, {}).get(prefix + "OperationalCarbon", {}).get(
+        "OperationalCarbon_kgCO2e_per_year") if door else None
+    check("Q4 the door with the given GlobalId and its operational carbon, from " + label,
+          door is not None and oc == want["value"], f"{oc}")
 
-    provenance = [s["Pset_NRCAnalyticsProvenance"] for s in psets.values() if "Pset_NRCAnalyticsProvenance" in s]
+    provenance_set = prefix + "AnalyticsProvenance"
+    provenance = [s[provenance_set] for s in psets.values() if provenance_set in s]
     want = expected["Q6"]["answer"]
     got = {k: provenance[0].get(k) for k in want} if len(provenance) == 1 else None
-    check("Q6 run id, time and source tool, from the IFC provenance set", got == want, f"{got}")
+    check("Q6 run id, time and source tool, from the provenance set of " + label, got == want, f"{got}")
     run_ids = {v.get("AnalysisRunId") for s in psets.values() for name, v in s.items()
-               if name.startswith("Pset_NRC")}
-    check("Q6 every NRC set cites the same run", run_ids == {want["AnalysisRunId"]}, f"{run_ids}")
+               if name.startswith(prefix)}
+    check("Q6 every NRC set cites the same run, in " + label, run_ids == {want["AnalysisRunId"]}, f"{run_ids}")
+
+    if prefix == "NRC_":
+        check_zone_questions(entities, psets, expected, label)
+
+
+def check_zone_questions(entities: dict, psets: dict, expected: dict, label: str) -> None:
+    """Q7 and Q9 from the toolkit's file: the elements that carry operational carbon but no
+    NRC_EmbodiedCarbon set, and the IfcZone whose NRC_ZoneSummary intensity is highest."""
+    analysed = [eid for eid, sets in psets.items() if "NRC_OperationalCarbon" in sets]
+    missing = sorted(entities[eid].args[0] for eid in analysed if "NRC_EmbodiedCarbon" not in psets[eid])
+    want = sorted(row["GlobalId"] for row in expected["Q7"]["answer"])
+    check("Q7 elements with no NRC_EmbodiedCarbon set, from " + label, missing == want, f"{missing}")
+
+    key = "ZoneEnergyUseIntensity_kWh_per_m2_year"
+    zones = {e.args[2]: psets.get(e.id, {}).get("NRC_ZoneSummary", {}).get(key)
+             for e in entities.values() if e.type == "IFCZONE"}
+    want = expected["Q9"]["all_zones"]
+    check("Q9 intensity of each zone, from " + label, zones == want, f"{zones}")
+    top = max(zones, key=lambda z: zones[z] if zones[z] is not None else float("-inf"))
+    check("Q9 the highest is " + expected["Q9"]["answer"]["Zone"], top == expected["Q9"]["answer"]["Zone"], top)
 
 
 def check_recorded_run(expected: dict) -> None:
@@ -122,11 +146,11 @@ def check_recorded_run(expected: dict) -> None:
 
 def main() -> int:
     ifc = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "poc" / "data" / "duplex-enriched.ifc"
-    with open(ELEMENTS, encoding="utf-8") as f:
-        expected = compute(list(csv.DictReader(f)))
+    expected = compute(read_csv(ELEMENTS), read_csv(ZONES), read_csv(SPACES))
     check_expected_file(expected)
     check_toolkit_copies()
-    check_from_ifc(ifc, expected)
+    check_from_ifc(ifc, expected, "Pset_NRC", "the version 1 control file")
+    check_from_ifc(TOOLKIT_SAMPLES / "duplex-enriched.ifc", expected, "NRC_", "the toolkit's enriched file")
     check_recorded_run(expected)
     for name, ok, detail in results:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + (f"  ({detail})" if detail else ""))

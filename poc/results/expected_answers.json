@@ -46,8 +46,7 @@
     "unit": "kgCO2e/yr"
   },
   "Q4": {
-    "question": "What is the operational carbon of the door named M_Single-Flush:0762 x 2032mm?",
-    "note": "Several doors share this family name; the first by STEP id is used.",
+    "question": "What is the operational carbon of the door with GlobalId 1hOSvn6df7F8_7GcBWlS8Z?",
     "answer": {
       "GlobalId": "1hOSvn6df7F8_7GcBWlS8Z",
       "Name": "M_Single-Flush:0762 x 2032mm:0762 x 2032mm:150173",
@@ -56,17 +55,22 @@
     "unit": "kgCO2e/yr"
   },
   "Q5": {
-    "question": "How much operational carbon is in each category?",
+    "question": "How much operational carbon is stored per IFC class?",
     "answer": {
-      "Wall": 22854.1,
-      "Floor": 5593.5,
-      "Other": 4313.1,
-      "Stair": 1144.2,
-      "Finish": 985.7,
-      "Window": 978.9,
-      "Door": 687.2,
-      "Roof": 474.7,
-      "Railing": 164.8
+      "IFCWALLSTANDARDCASE": 17547.4,
+      "IFCSLAB": 5816.9,
+      "IFCFURNISHINGELEMENT": 5766.3,
+      "IFCFOOTING": 2086.9,
+      "IFCDOOR": 1324.7,
+      "IFCCOVERING": 985.7,
+      "IFCWINDOW": 978.9,
+      "IFCBEAM": 771.6,
+      "IFCMEMBER": 560.0,
+      "IFCWALL": 357.5,
+      "IFCSTAIRFLIGHT": 311.5,
+      "IFCSTAIR": 272.7,
+      "IFCROOF": 251.3,
+      "IFCRAILING": 164.8
     },
     "unit": "kgCO2e/yr"
   },
@@ -79,9 +83,15 @@
     }
   },
   "Q7": {
-    "question": "What is the embodied carbon of the roof?",
-    "answer": null,
-    "note": "No Pset_NRCEmbodiedCarbon was written for the roof (0jf0rYHfX3RAB3bSIRjmxl); the correct answer is that the value is not available."
+    "question": "Which analysed elements carry no embodied-carbon property set?",
+    "answer": [
+      {
+        "GlobalId": "0jf0rYHfX3RAB3bSIRjmxl",
+        "IfcType": "IFCROOF",
+        "Name": "Basic Roof:Live Roof over Wood Joist Flat Roof:184483"
+      }
+    ],
+    "note": "No NRC_EmbodiedCarbon set was written for these elements; the roof is the only one."
   },
   "Q8": {
     "question": "What is the total embodied carbon (A1-A3) per storey?",
@@ -92,5 +102,19 @@
       "Roof": 5821.0
     },
     "unit": "kgCO2e"
+  },
+  "Q9": {
+    "question": "Which zone has the highest energy use intensity?",
+    "answer": {
+      "Zone": "Unit B Level 1",
+      "value": 78.04
+    },
+    "all_zones": {
+      "Unit B Level 1": 78.04,
+      "Unit A Level 1": 72.93,
+      "Unit B Level 2": 64.6,
+      "Unit A Level 2": 60.94
+    },
+    "unit": "kWh/m2/yr"
   }
 }

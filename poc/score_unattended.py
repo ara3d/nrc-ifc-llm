@@ -1,8 +1,8 @@
-"""Score unattended language-model runs of the paper's eight questions against the expected answers.
+"""Score unattended language-model runs of the paper's nine questions against the expected answers.
 
 Usage: python poc/score_unattended.py <results.json> [<results.json> ...] [--markdown <out.md>]
 
-Each results file is the JSON `bimopenmcp-ifc-ask --results` writes: a list of eight objects with
+Each results file is the JSON `bimopenmcp-ifc-ask --results` writes: a list of eight (version 2 of the paper) or nine (version 3) objects with
 `question`, `answer`, `turns`, `inputTokens`, `outputTokens`, and `toolCalls`. The expected
 answers are poc/results/expected_answers.json. The verdicts are:
 
@@ -14,7 +14,12 @@ answers are poc/results/expected_answers.json. The verdicts are:
 
 The comparator is deterministic and reads only the answer text. It settles the numeric
 questions; Q2 (which storey is higher) and Q7 (an absence) also look for the expected words, and
-their verdicts should be confirmed by reading the transcript. The score table it prints names
+their verdicts should be confirmed by reading the transcript.
+
+Q4, Q5 and Q7 were reworded for version 3 and Q9 (the zone) was added. A run of the 2026-10-04 set
+carries the old wording of Q4, Q5 and Q7 in its `question` field; those three keep their old rules
+(LEGACY below) so the committed table of that set stays reproducible. Everything else is read from
+poc/results/expected_answers.json. The score table it prints names
 every rule, so a reader can see what "Match" meant for each question. Standard library only.
 """
 from __future__ import annotations
@@ -45,6 +50,18 @@ LEVEL1_HIGHER = re.compile(
 # Per-class totals the recorded hand-driven session grouped by (paper section 6.1); accepted for
 # Q5 beside the analytics-category totals, because the IFC file carries no Category property.
 PER_CLASS_Q5 = [17547.4, 5816.9, 5766.3]
+
+
+# Version 2 wording of the three reworded questions, recognised from the run's own `question` text.
+LEGACY = {
+    "Q4": "door named",
+    "Q5": "in each category",
+    "Q7": "embodied carbon of the roof",
+}
+# Version 2 Q5: the three largest analytics-category totals (Wall, Floor, Other).
+LEGACY_Q5_BY_CATEGORY = [22854.1, 5593.5, 4313.1]
+GLOBAL_ID = re.compile(r"(?<![\w$])[0-9A-Za-z_$]{22}(?![\w$])")
+ZONE_NAME = re.compile(r"Unit\s*B\W{0,4}Level\s*1", re.IGNORECASE)
 
 
 def numbers(text: str) -> list[float]:
@@ -110,12 +127,26 @@ def score_q3(a: str, exp: dict) -> Verdict:
 
 def score_q4(a: str, exp: dict) -> Verdict:
     ok = has(numbers(a), exp["answer"]["value"])
+    return Verdict("Q4", "Match" if ok else "Miss", "54.0 stated for the door with the given GlobalId")
+
+
+def score_q4_legacy(a: str, exp: dict) -> Verdict:
+    ok = has(numbers(a), exp["answer"]["value"])
     return Verdict("Q4", "Match" if ok else "Miss", "54.0 stated (four doors share the name; listing all four is a match)")
 
 
 def score_q5(a: str, exp: dict) -> Verdict:
     ns = numbers(a)
-    by_category = sum(has(ns, v) for v in list(exp["answer"].values())[:3]) >= 3
+    if has_all(ns, list(exp["answer"].values())):
+        v = "Partial" if CONTAINER.search(a) else "Match"
+    else:
+        v = "Miss"
+    return Verdict("Q5", v, "all 14 per-class totals stated; container rows not listed")
+
+
+def score_q5_legacy(a: str, exp: dict) -> Verdict:
+    ns = numbers(a)
+    by_category = sum(has(ns, v) for v in LEGACY_Q5_BY_CATEGORY) >= 3
     by_class = sum(has(ns, v) for v in PER_CLASS_Q5) >= 3
     if by_category or by_class:
         v = "Partial" if CONTAINER.search(a) else "Match"
@@ -130,6 +161,20 @@ def score_q6(a: str, exp: dict) -> Verdict:
 
 
 def score_q7(a: str, exp: dict) -> Verdict:
+    wanted = exp["answer"][0]["GlobalId"]
+    ids = set(GLOBAL_ID.findall(a))
+    named = wanted in ids or re.search(r"\bIFCROOF\b", a, re.IGNORECASE) is not None
+    others = {i for i in ids if i != wanted and any(c.isdigit() for c in i) and any(c.isalpha() for c in i)}
+    if named and not others:
+        v = "Match"
+    elif named:
+        v = "Partial"
+    else:
+        v = "Miss"
+    return Verdict("Q7", v, "the one IfcRoof (0jf0rYHfX3RAB3bSIRjmxl) named, no other element listed")
+
+
+def score_q7_legacy(a: str, exp: dict) -> Verdict:
     absence = bool(ABSENCE.search(a))
     leads_with_absence = a.strip().lower().startswith("not available")
     big = [n for n in numbers(a) if n > 100 and n not in (2026,)]
@@ -154,7 +199,15 @@ def score_q8(a: str, exp: dict) -> Verdict:
     return Verdict("Q8", v, "49,451.2; 48,696.8; 11,761.3; 5,821.0 stated (doubles are the aggregate defect)")
 
 
-SCORERS = [score_q1, score_q2, score_q3, score_q4, score_q5, score_q6, score_q7, score_q8]
+def score_q9(a: str, exp: dict) -> Verdict:
+    name = ZONE_NAME.search(a) is not None
+    value = has(numbers(a), exp["answer"]["value"])
+    v = "Match" if name and value else "Partial" if name or value else "Miss"
+    return Verdict("Q9", v, "Unit B Level 1 named with 78.04 kWh/m2/yr")
+
+
+SCORERS = [score_q1, score_q2, score_q3, score_q4, score_q5, score_q6, score_q7, score_q8, score_q9]
+LEGACY_SCORERS = {"Q4": score_q4_legacy, "Q5": score_q5_legacy, "Q7": score_q7_legacy}
 
 
 def score_run(results: list[dict], expected: dict) -> list[Verdict]:
@@ -165,6 +218,9 @@ def score_run(results: list[dict], expected: dict) -> list[Verdict]:
         if unanswered(answer):
             out.append(Verdict(key, "Unanswered", "error or turn limit"))
         else:
+            legacy = LEGACY.get(key)
+            if legacy and legacy in item.get("question", ""):
+                scorer = LEGACY_SCORERS[key]
             out.append(scorer(answer, expected[key]))
     return out
 
@@ -178,7 +234,7 @@ def tokens(results: list[dict]) -> tuple[int, int, int]:
 def markdown(runs: dict[str, list[Verdict]], results_by_run: dict[str, list[dict]]) -> str:
     names = list(runs)
     lines = ["| # | Rule | " + " | ".join(names) + " | Matches |", "|---|---|" + "---|" * (len(names) + 1)]
-    for i in range(8):
+    for i in range(max(len(v) for v in runs.values())):
         key = f"Q{i + 1}"
         row = [runs[n][i].verdict for n in names]
         rule = runs[names[0]][i].rule
