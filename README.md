@@ -254,6 +254,7 @@ The last command builds the toolkit projects the tests need: about 2 minutes on 
 | `checks/` | The path check that keeps the documentation in step with the pinned toolkit. |
 | `data/`, `IFC-Test-Kit/` | Sample IFC models: `AC20-FZK-Haus.ifc`, `C20-Institute-Var-2.ifc`, `duplex.ifc`, `Office_A_20110811.ifc`, and the buildingSMART test kit. |
 | `docs/images/` | Screenshots used in this README. |
+| [docs/annexes/](docs/annexes/README.md) | The annexes the paper cites by URL: metric dictionary, the nine questions, tool surface, agent's guide, requirements status, licences. |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Every requirement on the repository, its status, and what checks it. |
 
 Background documents:
