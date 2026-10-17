@@ -44,7 +44,7 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 | I1 | Write the Layer 2 reference as an `IfcDocumentReference` (handoff-needs.md, I1). | Met for the toolkit's file. Since `v0.2`, the Run `nrc-enrich-run` (`sink.writePsets` with `documentPath`) writes an `IfcDocumentReference` and `IfcRelAssociatesDocument` on the project naming `nrc_analytics_long.csv` with its format, SHA-256 and join key `GlobalId`. `poc/EnrichIfc` (the version 1 control) still does not. | `toolkit-nrc` (`RollupGraphTests.Enriched_CarriesADocumentReferenceToTheLongTable`). |
 | I2 | A storey-of-element view, so Q2 counts 103 elements on Level 1 (handoff-needs.md, I2). | Met: `StoreyOfEntity` and the graph `nrc-storey-of-element` (Figure 10). | `toolkit-nrc` (`ModelGraphTests`); `poc` recomputes the Q2 storey means from the IFC by the same containment and aggregation walk. |
 | I3 | Typed values through `sink.writePsets`, so the enrichment is one graph (handoff-needs.md, I3). | Met: `nrc-enrich-run`. | `toolkit-nrc` (`RollupGraphTests`). |
-| I4 | An Information Delivery Specification (IDS) file for Layer 1, validated against the enriched model, with counts in §8.2 (handoff-needs.md, I4). | Not met. No `poc/nrc-analytics.ids`. | None. |
+| I4 | An Information Delivery Specification (IDS) file for Layer 1, validated against the enriched model, with counts in §8.2 (handoff-needs.md, I4). | Partly. The toolkit at `v0.2` generates `samples/nrc/ids/nrc-analytics.ids` (two specifications, IDS-OC and IDS-EC, over the 14 analysed classes) from `samples/nrc/nrc-metrics.csv` by `scripts/nrc-ids.mjs`; its own evaluator over the enriched file gives IDS-OC 218 pass and IDS-EC 217 pass, 1 fail (the roof). No independent IDS tool has validated the analytics IDS; the ifctester parity test covers the door rule only and skips when ifctester is absent. | `toolkit-nrc`: `IdsFilesTests.TheGeneratedIds_MatchesTheMetricDictionary`; the golden `tests/studio/BimOpenFlow.SampleFlows.Tests/golden/bim/check-ids-carbon-psets.txt` in the toolkit's own CI. |
 | I5 | Compliance verdicts for rule DC-W1 as a graph with a figure (handoff-needs.md, I5). | Met: `nrc-dc-w1-verdicts`, Figures 8 and 9, 8 pass and 6 fail. | `toolkit-nrc` (`ModelGraphTests`, `ShowcaseGraphTests`). |
 | I6 | Mesh-accurate door clearance in the DC-Z1 zone test (handoff-needs.md, I6). | Not met. Paper §7 says the mesh path is not wired into the checker. | None. |
 | I7 | Repeat the run on a second public model, `data/AC20-FZK-Haus.ifc` (handoff-needs.md, I7). | Not met. | None. |
@@ -67,10 +67,10 @@ request. "None" means nothing checks the requirement, by machine or by a recorde
 | Status | Count | IDs |
 |---|---|---|
 | Met | 17 | SOW-2, SOW-3, SOW-4, SOW-5, SOW-6, SOW-10, M1, M2, I1, I2, I3, I5, I9, W6-2, W6-4, W6-5, W6-6 |
-| Partly | 8 | SOW-1, SOW-9, M3, M4, M5, I8, W6-1, W6-3 |
-| Not met | 5 | SOW-7, SOW-8, I4, I6, I7 |
+| Partly | 9 | SOW-1, SOW-9, M3, M4, M5, I4, I8, W6-1, W6-3 |
+| Not met | 4 | SOW-7, SOW-8, I6, I7 |
 
-Rows with no check: SOW-1, SOW-6, SOW-7, SOW-8, SOW-9, M3, M4, I4, I6, I7, I8, I9 (none in this
+Rows with no check: SOW-1, SOW-6, SOW-7, SOW-8, SOW-9, M3, M4, I6, I7, I8, I9 (none in this
 repository), W6-3; M5 is checked only for its Appendix C path.
 
 ## The pin moved to `v0.2` on 2026-10-17
