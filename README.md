@@ -216,6 +216,10 @@ python checks/check_toolkit_paths.py
 ```
 
 ```bash
+python -m unittest discover -s checks -p "test_*.py"
+```
+
+```bash
 dotnet run --project poc/EnrichIfc -c Release -- IFC-Test-Kit/duplex.ifc poc/data/psets_to_write.csv out/duplex-enriched.ifc out/enrich-report.json
 ```
 

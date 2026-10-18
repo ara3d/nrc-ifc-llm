@@ -16,9 +16,11 @@ What counts as a toolkit path:
 
 Where a path is looked up: in the toolkit's file list at the pinned commit (the gitlink in
 this repository's index), so a working copy that has moved does not hide a broken path.
-A path under deps/<name>/ is looked up in that dependency's file list at the commit the
-toolkit's deps.json pins, using the checkout node deps.mjs made under bim-open-toolkit/deps/;
-when that checkout is absent the path is reported UNCHECKED, so run node deps.mjs first. Build outputs cannot be in git, so they are checked through what produces them:
+A path under deps/<name>/ is looked up in that dependency's file list at its pinned commit,
+using the checkout node deps.mjs made under bim-open-toolkit/deps/; when that checkout is
+absent the path is reported UNCHECKED, so run node deps.mjs first. Like deps.mjs, the names
+include the dependencies of dependencies, read from each one's deps.json at its pin, and the
+first pin seen for a name wins, a repository's own pins before its dependencies'. Build outputs cannot be in git, so they are checked through what produces them:
 "<dir>/node_modules/..." needs "<dir>/package.json", and "artifacts/<name>/..." needs some
 tracked toolkit file that mentions "artifacts/<name>".
 
@@ -40,7 +42,7 @@ import fnmatch
 import re
 import subprocess
 import sys
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -90,17 +92,37 @@ class Tree:
             elif kind == "commit":
                 self.gitlinks[path] = sha
         self.top = {p.split("/", 1)[0] for p in self.files | self.dirs | set(self.gitlinks)}
-        self.deps = self._deps()
-        if self.deps:
+        self.pins = self._pins()
+        if self.pins:
             self.top.add("deps")
 
-    def _deps(self) -> dict[str, str]:
+    def _pins(self) -> dict[str, str]:
         """name -> pinned commit from deps.json at this commit; empty when there is none."""
         if "deps.json" not in self.files:
             return {}
         import json
         text = git("show", f"{self.commit}:deps.json", cwd=self.repo)
         return {name: entry["commit"] for name, entry in json.loads(text).items()}
+
+    @cached_property
+    def deps(self) -> dict[str, str]:
+        """name -> commit for every repository node deps.mjs puts in deps/: this tree's pins,
+        then each dependency's own, depth first, the first pin seen for a name winning, as
+        deps.mjs resolves them. A dependency that is not checked out adds no names."""
+        found: dict[str, str] = {}
+        visited: set[str] = set()
+
+        def visit(pins: dict[str, str]) -> None:
+            for name, commit in pins.items():
+                found.setdefault(name, commit)
+            for name in pins:
+                checkout = self.repo / "deps" / name
+                if name not in visited and (checkout / ".git").exists():
+                    visited.add(name)
+                    visit(nested_tree(str(checkout), found[name]).pins)
+
+        visit(self.pins)
+        return found
 
     def exists(self, path: str) -> bool | None:
         """True or False when the path can be decided; None when it lies in a nested

@@ -2,4 +2,3 @@
 # reason. Format: file | toolkit path | reason. checks/check_toolkit_paths.py reports these as
 # KNOWN instead of failing, and fails on an entry that no longer matches, so fix the
 # reference and delete its line together.
-docs/annexes/F-licences.md | deps/parakeet/ | The Ara 3D SDK pulls Parakeet in under its own deps.json, so node deps.mjs fills deps/parakeet but the toolkit git tree and its own deps.json never name it; the annex cites it as a third-party licence.

@@ -34,6 +34,8 @@ jobs:
       - name: Fetch the toolkit's dependencies at their pinned commits
         run: node deps.mjs
         working-directory: bim-open-toolkit
+      - name: The path check's own tests
+        run: python3 -m unittest discover -s checks -p "test_*.py"
       - name: Toolkit paths exist at the pinned commit
         run: python3 checks/check_toolkit_paths.py --verbose
 
