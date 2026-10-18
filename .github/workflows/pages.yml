@@ -1,0 +1,71 @@
+# Builds the NRC walkthrough site from the pinned bim-open-toolkit and publishes it to GitHub Pages
+# at https://ara3d.github.io/nrc-ifc-llm/ (README.md, "Walkthrough site"). The site is the toolkit's
+# nrc.html landing page and notebook page over its sample notebooks, as plain files with no host:
+# `npm run build:pages -w @bimopenflow/nrc-web` writes bim-open-toolkit/artifacts/nrc-site, and
+# the toolkit's gates/nrc-pages-smoke.mjs checks it in a headless browser before it is uploaded.
+# Needs Settings, Pages, Source: GitHub Actions.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bim-open-toolkit/bimopenflow/web/package-lock.json
+      # The toolkit's dependencies at their pinned commits (deps/), then the viewer's built dist/.
+      - name: Fetch the toolkit's dependencies
+        run: node deps.mjs
+        working-directory: bim-open-toolkit
+      - run: npm ci
+        working-directory: bim-open-toolkit/deps/bim-open-viewer
+      - run: npm run build
+        working-directory: bim-open-toolkit/deps/bim-open-viewer
+      - run: npm ci
+        working-directory: bim-open-toolkit/bimopenflow/web
+      # The smoke drives a browser through playwright-core, which the toolkit's workspace does not list.
+      - run: npm install --no-save --no-package-lock playwright-core@^1.63.0
+        working-directory: bim-open-toolkit/bimopenflow/web
+      - name: Build the site
+        run: npm run build:pages -w @bimopenflow/nrc-web
+        working-directory: bim-open-toolkit/bimopenflow/web
+      # Google Chrome is installed on the runner; locally the smoke uses Edge.
+      - name: Smoke-check the built site
+        run: node gates/nrc-pages-smoke.mjs
+        working-directory: bim-open-toolkit
+        env:
+          NRC_PAGES_BROWSER_CHANNEL: chrome
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: bim-open-toolkit/artifacts/nrc-site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

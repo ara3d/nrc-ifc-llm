@@ -237,6 +237,29 @@ dotnet test bim-open-toolkit/tests/studio/BimOpenFlow.NrcWorkflows.Tests -c Rele
 
 The last command builds the toolkit projects the tests need: about 2 minutes on a CI runner, 14 minutes on the first local run with an empty build cache. A reference the pinned toolkit no longer has, but which is not fixed yet, goes in `checks/known-missing-paths.txt` with its reason.
 
+## Walkthrough site
+
+https://ara3d.github.io/nrc-ifc-llm/ opens the notebooks of the walkthrough with nothing installed. The landing page lists every sample notebook of the pinned toolkit except `s10-snowdon` (it works on a private model, Snowdon Towers, CC BY-NC-SA 3.0, and the page says so) and the graphs behind them. Each notebook is a request and reply transcript; its tables, charts, graphs with their wires, and 3D views of the Duplex model are drawn from what the notebook recorded, so they show the answers as they were computed. Nothing runs: re-evaluating and asking new questions need a local host.
+
+The sessions are reconstructed, not live recordings: each notebook's header says whether it was recorded against the host or written afterwards from the graphs' results. The site is built by [.github/workflows/pages.yml](.github/workflows/pages.yml) on every push to `main`, from the toolkit commit the `bim-open-toolkit` submodule is pinned to, and checked in a headless browser before it is published: no failed request, every notebook draws all its turns, every 3D view draws.
+
+To build and check it locally (Node 22, a Chromium-based browser; Edge is the default, `NRC_PAGES_BROWSER_CHANNEL=chrome` picks Chrome):
+
+```bash
+git submodule update --init
+cd bim-open-toolkit
+node deps.mjs
+(cd deps/bim-open-viewer && npm ci && npm run build)
+cd bimopenflow/web
+npm ci
+npm install --no-save --no-package-lock playwright-core@^1.63.0
+npm run build:pages -w @bimopenflow/nrc-web
+cd ../..
+node gates/nrc-pages-smoke.mjs
+```
+
+The site is the folder `bim-open-toolkit/artifacts/nrc-site`. To open it, serve it as plain files, for example `npx serve bim-open-toolkit/artifacts/nrc-site` from the repository root. To re-evaluate a notebook, start the toolkit's host (`node scripts/start-bim-flow.mjs` in `bim-open-toolkit`) and its notebook page (`npm run notebook --prefix bimopenflow/web`), then open the same notebook there and press Re-evaluate.
+
 ## What is not done
 
 - No real NRC model or analytics dataset has been used; every value is synthetic.
