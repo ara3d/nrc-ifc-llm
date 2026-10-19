@@ -259,6 +259,14 @@ node gates/nrc-pages-smoke.mjs
 
 The site is the folder `bim-open-toolkit/artifacts/nrc-site`. To open it, serve it as plain files, for example `npx serve bim-open-toolkit/artifacts/nrc-site` from the repository root. To re-evaluate a notebook, start the toolkit's host (`node scripts/start-bim-flow.mjs` in `bim-open-toolkit`) and its notebook page (`npm run notebook --prefix bimopenflow/web`), then open the same notebook there and press Re-evaluate.
 
+The site omits `s11-editing-history` as well as `s10-snowdon`: it is about the notebook page itself, not the paper.
+
+## Running it on your own Windows machine
+
+The toolkit builds one zip for Windows 10 or 11 that needs no .NET SDK, Node, or Git: the host, the two MCP servers Claude uses, the IFC converter, the notebook pages with these notebooks, and the NRC sample data. Its `bimopen.exe` is a setup wizard: it finds Claude Code and checks it is signed in, registers the two servers and skills with Claude Code (and, if asked, the Claude desktop app), runs a self-check, and then `bimopen start` opens the notebooks with Re-evaluate working against the local host. The language model is whatever Claude Code on that machine is signed in to; no API key is involved.
+
+No release has been published yet (2026-10-18). Until one is, build the zip from the pinned toolkit with `node scripts/release/build-release.mjs` (it needs the .NET 8 SDK and Node on the building machine only). [bim-open-toolkit/docs/release.md](bim-open-toolkit/docs/release.md) describes the zip, every wizard step and its messages, troubleshooting, and the checklist for a clean machine. The programs are not code-signed yet, so Windows SmartScreen may warn on first run.
+
 ## What is not done
 
 - No real NRC model or analytics dataset has been used; every value is synthetic.
