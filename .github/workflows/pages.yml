@@ -41,10 +41,8 @@ jobs:
         working-directory: bim-open-toolkit/deps/bim-open-viewer
       - run: npm run build
         working-directory: bim-open-toolkit/deps/bim-open-viewer
+      # npm ci also installs playwright-core, which the smoke drives the browser with; the web workspace lists it.
       - run: npm ci
-        working-directory: bim-open-toolkit/bimopenflow/web
-      # The smoke drives a browser through playwright-core, which the toolkit's workspace does not list.
-      - run: npm install --no-save --no-package-lock playwright-core@^1.63.0
         working-directory: bim-open-toolkit/bimopenflow/web
       - name: Build the site
         run: npm run build:pages -w @bimopenflow/nrc-web

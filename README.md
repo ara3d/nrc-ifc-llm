@@ -252,7 +252,6 @@ node deps.mjs
 (cd deps/bim-open-viewer && npm ci && npm run build)
 cd bimopenflow/web
 npm ci
-npm install --no-save --no-package-lock playwright-core@^1.63.0
 npm run build:pages -w @bimopenflow/nrc-web
 cd ../..
 node gates/nrc-pages-smoke.mjs
