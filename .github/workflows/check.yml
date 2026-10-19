@@ -93,6 +93,16 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-toolkit-${{ runner.os }}-${{ hashFiles('bim-open-toolkit/**/*.csproj', 'bim-open-toolkit/**/Directory.Build.*') }}
           restore-keys: nuget-toolkit-${{ runner.os }}-
+      # Platonic.Core and Platonic.Analyzers 0.1.0 are not on nuget.org yet (toolkit TKT-293). The
+      # toolkit's Directory.Build.props and bim-open-data's restore them from a Platonic.CSharp clone
+      # beside the toolkit folder, here the repository root, as the pin's own CI does with
+      # ../Platonic.CSharp. Without this step restore fails with NU1101 (every run since 2026-10-17).
+      - name: Pack the Platonic packages beside the toolkit
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/cdiggins/Platonic.CSharp Platonic.CSharp
+          dotnet pack Platonic.CSharp/src/Platonic.Core -c Release -o Platonic.CSharp/artifacts
+          dotnet pack Platonic.CSharp/src/Platonic.Analyzers -c Release -o Platonic.CSharp/artifacts
       # The pin's CI builds the solution, then runs this project with no filter; building only
       # this project and its references is the same test with less to compile.
       - name: Toolkit NRC answer tests (BimOpenFlow.NrcWorkflows.Tests)
